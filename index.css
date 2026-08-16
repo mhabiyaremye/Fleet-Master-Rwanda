@@ -1,0 +1,92 @@
+body {
+  background-image: url(Landing-Images/salvo-media-llc-yVV61ltYwBs-unsplash.jpg);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: left;
+  font-family: "Nunito", sans-serif;
+  font-weight: 1rem;
+}
+
+h1 {
+  color: rgb(132, 101, 101);
+  text-align: center;
+  font-family: "Nunito", sans-serif;
+}
+p {
+  color: white;
+  padding: 0;
+  margin: 0;
+  font-family: "Nunito", sans-serif;
+}
+.comments {
+  align-self: center;
+}
+a {
+  color: rgb(170, 207, 244);
+  font-weight: 900;
+}
+
+.log-in-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 5.5rem;
+}
+
+.log-in-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  border: 0.3rem solid rgb(99, 98, 98);
+  width: 40rem;
+  height: 20rem;
+  padding: 1rem;
+  position: relative;
+}
+.log-in-form input,
+.log-in-form button {
+  width: 15rem;
+  height: 2rem;
+  cursor: pointer;
+}
+
+.log-in-button-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+.log-in-button-container a {
+  align-self: center;
+}
+.button-log-in {
+  width: 5rem;
+  height: 2rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+#success-dialog-content {
+  display: none;
+  background-color: black;
+  border: 1rem solid red;
+}
+
+/*the following div contains the stylings of the content from the dialogbox container*/
+.log-in-form #success-dialog-content {
+  flex-direction: column;
+  justify-self: center;
+  align-self: center;
+  background-color: black;
+  color: white;
+  position: absolute;
+  top: 50%;
+  bottom: 50%;
+}
+
+.success-dialog {
+  display: flex;
+  flex-direction: column;
+  justify-self: center;
+  align-self: center;
+}
+/*The following div contains the stylings of the container it self not it's contents*/

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>welcome</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Roboto+Serif:ital,opsz,wght@0,8..144,100..900;1,8..144,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <nav>
+      <h1>Fleet Master Ops</h1>
+      <!--   <p>
+        Welcome to one of the most sophisticated systems for fleet management in
+        Rwanda<br />
+        Cut costs by saving up to 50% of your regular expenses on vehicle
+        management<br />
+        Don't have an account ? Please sign up now <br />
+      </p> -->
+    </nav>
+    <section>
+      <div class="log-in-container">
+        <div class="log-in-form">
+          <input id="email" type="email" placeholder="Enter your email" />
+          <p id="email-error"></p>
+          <input
+            id="password"
+            type="password"
+            placeholder="Enter your password"
+          />
+          <p id="password-error"></p>
+          <br />
+          <div class="log-in-button-container">
+            <button id="log-in-button" class="button-log-in">Log in</button>
+            <a href="./pages/forgot-password.html"> Forgot your password?</a>
+            <p class="comments">Don't have an account ?</p>
+            <a href="./pages/create-account.html">Create account</a>
+          </div>
+          <div id="success-dialog">
+            <div id="success-dialog-content">
+              <h2>Login Successful!</h2>
+              <p>Welcome to Fleet Master Ops.</p>
+              <button id="continue-button">Continue</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script src="./index.js"></script>
+  </body>
+</html>
