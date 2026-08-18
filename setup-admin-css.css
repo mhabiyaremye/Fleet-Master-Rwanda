@@ -1,0 +1,14 @@
+#set-up-admin-form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+#set-up-admin-form input:not([type="radio"]) {
+  height: 2.5rem;
+  width: 12rem;
+}
+#set-up-admin-form button {
+  height: 2.5rem;
+  width: 12.5rem;
+}

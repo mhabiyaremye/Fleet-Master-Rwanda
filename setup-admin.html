@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>setupadmin</title>
+    <link rel="stylesheet" href="./setup-admin-css.css" />
+  </head>
+  <body>
+    <main>
+      <form id="set-up-admin-form">
+        <input id="first-name" type="text" placeholder="Firstname" />
+        <input id="last-name" type="text" placeholder="Lastname" />
+        <input id="employee-id" type="text" placeholder="EmployeeId" />
+        <label> <input type="radio" name="gender" value="male" /> Male </label>
+        <label>
+          <input type="radio" name="gender" value="female" /> Female
+        </label>
+        <input id="email" type="text" placeholder="Email" />
+        <input id="password" type="password" placeholder="Password" />
+        <input id="set-up-code" type="password" placeholder="Setup-Code" />
+        <button type="submit" id="submit-button">Submit</button>
+      </form>
+    </main>
+    <script src="./backend/bootstrap.js"></script>
+  </body>
+</html>

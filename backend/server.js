@@ -199,19 +199,147 @@ app.post("/register",function(req,res){
     .catch(function(error){
         console.log(error);
     })
-    
-
-
-
-
-
-
-
-
-
-
 })
+app.post("/setupadmin",function(req,res){
 
+    let firstname=req.body.firstname;
+    let lastname=req.body.lastname;
+    let employeeId=req.body.employeeId;
+    let gender=req.body.gender;
+    let email=req.body.email;
+    let password=req.body.password;
+    let setupCode=req.body.setupCode;
+
+    if(!firstname){
+        res.json({
+            success:false,
+            message:"Provide firstname"
+        })
+        return;
+    }
+    if(!lastname){
+        res.json({
+            success:false,
+            message:"Provide lastname"
+        })
+        return;
+    }
+    if(!employeeId){
+        res.json({
+            success:false,
+            message:"Provide EmployeeID"
+        })
+        return;
+    }
+    if(!gender){
+        res.json({
+            success:false,
+            message:"Select gender"
+    })
+    return;
+    }
+    if(!password){
+        res.json({
+            success:false,
+            message:"Provide password"
+        })
+        return;
+    }
+    if(password.length<12){
+        res.json({
+            success:false,
+            message:"Password must be at least 12 characters"
+        })
+        return;
+    }
+    if(!setupCode){
+        res.json({
+        success:false,
+        message:"Provide set-up code"
+    })
+    return;
+    }
+    if(setupCode !== process.env.initial_admin_setup_code){
+        res.json({
+            success:false,
+            message:"Incorrect setupcode"
+        })
+        return;
+    }
+  pool.query("select *from users where role = $1 ",
+    ["admin"]
+  )
+  .then(function(result){
+    if(result.rows.length > 0){
+        res.json({
+            success:false,
+            message:"Admin already exists"
+        })
+        return;
+    }
+    pool.query("select *from users where email =$1",
+        [email]
+    )
+    .then(function(result){
+        if(result.rows.length >0){
+            res.json({
+            success:false,
+            message:"Email already registered"
+            })
+            return;
+        }
+        pool.query("select *from users where employee_id = $1",
+            [employeeId]
+        )
+        .then(function(result){
+            if(result.rows.length > 0){
+                res.json({
+                    success:false,
+                    message:"EmployeeId already exists"
+                })
+                return;
+            }
+            bcrypt.hash(password,10)
+            .then(function(hashedpassword){
+            pool.query(`insert into users(
+                firstname,
+                lastname,
+                employee_id,
+                gender,
+                role,
+                status,
+                email,
+                password)values
+                ($1,$2,$3,$4,$5,$6,$7,$8)`,
+            [firstname,lastname,employeeId,gender,"admin","approved",email,hashedpassword])
+
+        .then(function(){
+            res.json({
+                success:true,
+                message:"Admin added"
+            })
+        })
+        .catch(function(error){
+            console.log(error);
+        })
+        })
+        .catch(function(error){
+            console.log(error);
+        })
+        })
+        .catch(function(error){
+            console.log(error);
+        })
+    })
+    .catch(function(error){
+        console.log(error);
+    })
+})
+.catch(function(error){
+    console.log(error);
+})   
+    
+})
 
 
 app.listen(3000,function(){
