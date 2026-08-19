@@ -64,7 +64,7 @@ pool.query("select *from users where email = $1",
             })
              return;
         }
-       
+       let blockedUsers = ["rejected","deactivated"]
     if(result.rows[0].status === "pending"){
         res.json({
             success:false,
@@ -72,10 +72,19 @@ pool.query("select *from users where email = $1",
         })
         return;
       }
+      if(blockedUsers.includes(result.rows[0].status)){
+        res.json({
+            success:false,
+            message:"Account might have been rejected or blocked"
+        })
+        return;
+      }
+      if(result.rows[0].status === "approved"){
     res.json({
         success:true,
         message:"Log in successful"
     })
+      }
     })
     .catch(function(error){
         console.log(error);
@@ -341,6 +350,277 @@ app.post("/setupadmin",function(req,res){
     
 })
 
+
+// admin-get user
+
+app.get("/get-pending-users",function(req,res){
+    
+    pool.query("select *from users where status = $1 ",
+        ["pending"]
+    )
+    .then(function(result){
+        if(result.rows.length === 0){
+            res.json({
+                success:false,
+                message:"You have no pending users"
+            })
+            return;
+        }
+        let pendingUsers = result.rows.map(function(user){
+           return{ 
+           firstname : user.firstname,
+           lastname : user.lastname,
+           gender : user.gender,
+           employee_id : user.employee_id,
+           role : user.role,
+           status : user.status
+           }
+    })
+    res.json({
+        success:true,
+        users:pendingUsers
+    })
+    })
+})
+/* app.patch("/update-user",function(req,res){
+    let employeeId = req.body.employeeId;
+    let role = req.body.role;
+    let status = req.body.status;
+    if(!employeeId){
+        res.json({
+            success:false,
+            message:"Provide employee_id"
+        })
+        return;
+    }
+    if(!role){
+        res.json({
+            success:false,
+            message:"Select role"
+        })
+        return;
+    }
+    if(!status){
+        res.json({
+            success:false,
+            message:"Status is null"
+        })
+        return;
+    }
+
+  
+    pool.query("select *from users where employee_id= $1",
+    [employeeId]
+)
+.then(function(result){
+    if(result.rows.length === 0){
+       res.json({
+        success:false,
+        message:"Employee Id not found"
+       }) 
+       return; 
+    }
+    pool.query(`update users set role = $1,status = $2 where employee_id = $3`,
+        [role,status,employeeId]
+    )
+    .then(function(result){
+        res.json({
+            success:true,
+            message:"User priviledges updated"
+    })
+    
+    })
+    .catch(function(error){
+        console.log("database error",error);
+        res.json({
+            success:false,
+            message:"Database error"
+        })
+    })
+
+}).catch(function(error){
+    console.log("database error",error)
+    res.json({
+        success:false,
+        message:"database-error"
+    })
+})
+}) */
+
+app.patch("/approval",function(req,res){
+    let employeeId = req.body.employeeId;
+    let role = req.body.role;
+    let allowedRoles = ["Driver" , "Fleet Manager", "Finance Manager"]
+    
+
+    if(!employeeId){
+        res.json({
+            success:false,
+            message:"Employee id not found"
+        })
+        return;
+    }
+    if(!role){
+        res.json({
+            success:false,
+            message:"Select a role "
+        })
+        return;
+    }
+    if(!allowedRoles.includes(role)){
+        res.json({
+            success:false,
+            message:"Select a valid role "
+        })
+        return;
+    }
+    pool.query("select *from users where employee_id = $1",
+        [employeeId]
+    )
+    .then(function(result){
+
+        if(result.rows.length === 0){
+            res.json({
+                success:false,
+                message:"User not found"
+            })
+            return;
+        }
+        if (result.rows[0].status !== "pending") {
+           res.json({
+               success: false,
+               message: "Status is not pending"
+            });
+            return;
+        }
+        pool.query(`update users set status = $1 ,role = $2 where employee_id = $3`,
+            ["approved",role,employeeId]
+        )
+        .then(function(result){
+            res.json({
+                success:true,
+                message:"User approved"
+            })
+        })
+        .catch(function(error){
+            console.log("database error",error);
+            res.json({
+                success:false,
+                message:"Database error"
+            })
+        })
+    })
+    .catch(function(error){
+        console.log("Database error",error)
+        res.json({
+            success:false,
+            message:"Database error"
+        })
+    })
+})
+app.patch("/rejected",function(req,res){
+    let employeeId = req.body.employeeId;
+    if(!employeeId){
+        res.json({
+            success:false,
+            message:"Provide employeeId"
+        })
+        return;
+    }
+
+    pool.query("select *from users where employee_id = $1",
+        [employeeId]
+    ).then(function(result){
+        if(result.rows.length === 0){
+            res.json({
+                success:false,
+                message:"User not found "
+            })
+            return;
+        }
+        if(result.rows[0].status !== "pending"){
+            res.json({
+                success:false,
+                message:"User is not pending "
+            })
+            return;
+        }
+            pool.query(`update users set status =$1 where employee_id =$2`,
+                ["rejected",employeeId])
+                .then(function(){
+                    res.json({
+                    success:true,
+                    message:"User rejected"
+                    })
+                })
+                .catch(function(error){
+                    console.log("Database error",error);
+                    res.json({
+                        success:false,
+                        message:"Database.error"
+                    })
+                })   
+    })
+    .catch(function(error){
+        console.log("Database error",error);
+        res.json({
+            success:false,
+            message:"Database error"
+        })
+    })
+})
+app.patch("/deactivated",function(req,res){
+    let employeeId = req.body.employeeId;
+    if(!employeeId){
+        res.json({
+            success:false,
+            message:"Provide Employee Id"
+        })
+        return;
+    }
+    pool.query("select *from users where employee_id = $1",
+        [employeeId]
+    )
+    .then(function(result){
+        if(result.rows.length === 0){
+            res.json({
+                success:false,
+                message:"User not found"
+            })
+            return;
+        }
+        if(result.rows[0].status !== "approved"){
+            res.json({
+                success:false,
+                message:"User is not approved"
+            })
+            return;
+        }
+            pool.query(`update users set status = $1 where employee_id =$2`,
+                ["deactivated",employeeId]
+            )
+            .then(function(){
+                res.json({
+                    success:true,
+                    message:"User deactivated"
+                })
+            })
+            .catch(function(error){
+                console.log("Database error");
+                res.json({
+                    success:false,
+                    message:"Database error"
+                })
+            })
+    })
+    .catch(function(error){
+        console.log("Database error",error);
+        res.json({
+            success:false,
+            message:"Database error"
+        })
+    })
+})
 
 app.listen(3000,function(){
     console.log("Server initiated");
