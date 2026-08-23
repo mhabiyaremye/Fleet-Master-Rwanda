@@ -4,6 +4,7 @@ const bcrypt=require("bcryptjs")
 const app=express();
 const {Pool}=require("pg");
 const {loadEnvFile}=require("node:process");
+const jwt=require("jsonwebtoken");
 loadEnvFile("../.env");
 app.use(cors());
 app.use(express.json());
@@ -79,11 +80,23 @@ pool.query("select *from users where email = $1",
         })
         return;
       }
+     
       if(result.rows[0].status === "approved"){
+        let token = jwt.sign(
+        {userId:result.rows[0].id,
+            role:result.rows[0].role,
+        },
+        process.env.JWT_SECRET,{
+            expiresIn:"1h"
+        }
+     )
     res.json({
         success:true,
-        message:"Log in successful"
+        message:"Log in successful",
+        token:token
+        
     })
+    return;
       }
     })
     .catch(function(error){
@@ -447,7 +460,57 @@ app.get("/get-pending-users",function(req,res){
 })
 }) */
 
-app.patch("/approval",function(req,res){
+// the following middleware's is for token validation 
+function authenticateUser(req,res,next){
+    let authHeaders=req.headers.authorization;
+    if(!authHeaders){
+        res.json({
+            success:false,
+            message:"Authentication token requried"
+        })
+        return;
+    }
+    let parts=authHeaders.split(" ");
+    let token=parts[1];
+    if(parts[0] !=="Bearer" || !parts[1]){
+        res.json({
+            success:false,
+            message:"Authentication token is not valid "
+        })
+        return;
+    }
+    try{
+        let decoded=jwt.verify(token,process.env.JWT_SECRET);
+        req.user=decoded;
+    }
+    catch(error){
+        res.json({
+            success:false,
+            message:"Invalid or expired token"
+        })
+        return;
+    }
+    next();
+    
+}
+//the following middleware is for admin's authorization
+
+function authorizeAdmin(req,res,next){
+    let role=req.user.role;
+    console.log("ROLE FROM TOKEN:", role);
+    if(!role || role !=="admin"){
+        res.json({
+            success:false,
+            message:"User not allowed"
+        })
+        return;
+    }
+    next();
+}
+
+
+
+app.patch("/approval",authenticateUser,authorizeAdmin,function(req,res){
     let employeeId = req.body.employeeId;
     let role = req.body.role;
     let allowedRoles = ["Driver" , "Fleet Manager", "Finance Manager"]
@@ -518,7 +581,7 @@ app.patch("/approval",function(req,res){
         })
     })
 })
-app.patch("/rejected",function(req,res){
+app.patch("/rejected",authenticateUser,authorizeAdmin,function(req,res){
     let employeeId = req.body.employeeId;
     if(!employeeId){
         res.json({
@@ -569,7 +632,7 @@ app.patch("/rejected",function(req,res){
         })
     })
 })
-app.patch("/deactivated",function(req,res){
+app.patch("/deactivated",authenticateUser,authorizeAdmin,function(req,res){
     let employeeId = req.body.employeeId;
     if(!employeeId){
         res.json({
