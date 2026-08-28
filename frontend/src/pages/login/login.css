@@ -1,0 +1,48 @@
+h1 {
+  padding: 0;
+  margin-bottom: 2rem;
+  color: rgba(102, 107, 105, 0.38);
+}
+
+.log-in-container {
+  font-size: 1rem;
+  color: rgb(251, 247, 247);
+  background-image: url("../../assets/images/login.jpg");
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  width: 100%;
+  min-height: 100vh;
+}
+.log-in-page form {
+  padding-top: 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+.log-in-page input,
+button {
+  width: 16rem;
+  height: 2.5rem;
+}
+button {
+  font-size: large;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 0.3rem;
+  border: none;
+  margin-bottom: 1rem;
+}
+button:hover {
+  font-size: larger;
+  font-weight: 700;
+  opacity: 1rem;
+}
+.authlink:link {
+  color: white;
+}
+.authlink:visited {
+  color: rgb(191, 222, 186);
+}

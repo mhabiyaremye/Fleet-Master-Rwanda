@@ -93,7 +93,9 @@ pool.query("select *from users where email = $1",
     res.json({
         success:true,
         message:"Log in successful",
-        token:token
+        token:token,
+        role:result.rows[0].role
+        
         
     })
     return;
@@ -366,7 +368,7 @@ app.post("/setupadmin",function(req,res){
 
 // admin-get user
 
-app.get("/get-pending-users",function(req,res){
+app.get("/get-pending-users",authenticateUser,authorizeAdmin,function(req,res){
     
     pool.query("select *from users where status = $1 ",
         ["pending"]
