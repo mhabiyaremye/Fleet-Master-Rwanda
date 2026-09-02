@@ -686,6 +686,40 @@ app.patch("/deactivated",authenticateUser,authorizeAdmin,function(req,res){
         })
     })
 })
+app.get("/get-all-users",authenticateUser,authorizeAdmin,function(req,res){
+    pool.query("select *from users where status =$1",
+        ["approved"])
+    .then(function(result){
+        if(result.rows.length === 0){
+            res.json({
+                success:false,
+                message:"No users found"
+            })
+            return;
+        }
+        res.json({
+            success:true,
+            users:result.rows.map(function(user){   
+                return{
+                    firstname:user.firstname,
+                    lastname:user.lastname,
+                    employee_id:user.employee_id,
+                    email:user.email,
+                    gender:user.gender,
+                    role:user.role,
+                    status:user.status
+                }
+            })
+        })
+}) 
+.catch(function(error){
+    console.log("Database error",error);
+    res.json({
+        success:false,
+        message:"Database error"
+    })
+})
+})
 
 app.listen(3000,function(){
     console.log("Server initiated");
