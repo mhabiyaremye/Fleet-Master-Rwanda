@@ -387,7 +387,7 @@ app.get("/get-pending-users",authenticateUser,authorizeAdmin,function(req,res){
            lastname : user.lastname,
            gender : user.gender,
            employee_id : user.employee_id,
-           role : user.role,
+           email : user.email,
            status : user.status
            }
     })
@@ -686,9 +686,55 @@ app.patch("/deactivated",authenticateUser,authorizeAdmin,function(req,res){
         })
     })
 })
+app.patch("/reactivate",authenticateUser,authorizeAdmin,function(req,res){
+    let employeeId = req.body.employeeId;
+    console.log(req.body);
+    if(!employeeId){
+        res.json({
+            success:false,
+            message:"Provide employeeId"
+        })
+        return;
+    }
+    pool.query("select *from users where employee_id = $1 and status = $2" ,
+        [employeeId,"deactivated"]
+    )
+    .then(function(result){
+        if(result.rows.length === 0){
+            res.json({
+                success:false,
+                message:"User not found"
+            })
+            return;
+        }
+        pool.query(`update users set status = $1 where employee_id =$2`,
+            ["approved",employeeId]
+        )
+        .then(function(){
+            res.json({
+                success:true,
+                message:"User reactivated"
+            })
+        })
+        .catch(function(error){
+            console.log("Database error",error);
+            res.json({
+                success:false,
+                message:"Database error"
+            })
+        })
+    })
+    .catch(function(error){
+        console.log("Database error",error);
+        res.json({
+            success:false,
+            message:"Database error"
+        })
+    })
+})
 app.get("/get-all-users",authenticateUser,authorizeAdmin,function(req,res){
-    pool.query("select *from users where status =$1",
-        ["approved"])
+    pool.query("select *from users where status =$1 and role != $2  ",
+        ["approved","admin"])
     .then(function(result){
         if(result.rows.length === 0){
             res.json({
@@ -719,6 +765,34 @@ app.get("/get-all-users",authenticateUser,authorizeAdmin,function(req,res){
         message:"Database error"
     })
 })
+})
+app.get("/get-deactivated-users",authenticateUser,authorizeAdmin,function(req,res){
+    pool.query("select *from users where status = $1 and role != $2",
+        ["deactivated","admin"]
+    )
+    .then(function(result){ 
+        res.json({
+            success:true,
+            users:result.rows.map(function(user){
+                return{
+                    firstname:user.firstname,
+                    lastname:user.lastname,
+                    employee_id:user.employee_id,
+                    email:user.email,
+                    gender:user.gender,
+                    role:user.role,
+                    status:user.status
+                }
+            })
+        })
+    })
+    .catch(function(error){
+        console.log("Database error",error);
+        res.json({
+            success:false,
+            message:"Database error"
+        })
+    })
 })
 
 app.listen(3000,function(){

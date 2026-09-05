@@ -27,7 +27,7 @@ button {
   width: 16rem;
   height: 2.5rem;
 }
-button {
+.log-in-page button {
   font-size: large;
   font-weight: 600;
   cursor: pointer;
@@ -35,7 +35,7 @@ button {
   border: none;
   margin-bottom: 1rem;
 }
-button:hover {
+.log-in-page button:hover {
   font-size: larger;
   font-weight: 700;
   opacity: 1rem;
