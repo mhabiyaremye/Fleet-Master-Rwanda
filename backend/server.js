@@ -1,21 +1,15 @@
+const {loadEnvFile}=require("node:process");
 const express=require("express");
 const cors=require("cors");
 const bcrypt=require("bcryptjs")
 const app=express();
-const {Pool}=require("pg");
-const {loadEnvFile}=require("node:process");
-const jwt=require("jsonwebtoken");
 loadEnvFile("../.env");
+const pool = require ("./database");
+const vehicleRoutes=require("./vehicle-routes");
+const jwt=require("jsonwebtoken");
 app.use(cors());
 app.use(express.json());
-const pool=new Pool({
-           user:process.env.db_user,
-           host:process.env.db_host,
-           database:process.env.db_name,
-           password:process.env.db_password,
-           port:process.env.db_port
-})
-
+app.use("/vehicles",vehicleRoutes);
 
 app.post("/login",function(req,res){
 let email=req.body.email;
