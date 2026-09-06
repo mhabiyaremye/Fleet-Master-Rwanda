@@ -71,4 +71,22 @@ router.post("/",async function(req,res){
     }
     
 });
+router.get("/",async function(req,res){
+    try{
+        const result = await pool.query("select * from vehicles order by vehicle_id asc")
+     return res.status(200).json({
+        success:true,
+        vehicles:result.rows
+    })
+    }
+   
+    catch(error){
+         console.log(error);
+        return res.status(500).json({
+            success:false,
+            message:"Failed to retreive vehicles"
+        })
+    }
+
+})
 module.exports = router;
