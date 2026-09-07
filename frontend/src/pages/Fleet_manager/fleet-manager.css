@@ -1,0 +1,253 @@
+/* ==================================================
+   FLEET MANAGER BASE
+================================================== */
+
+.fleet-manager-dashboard {
+  width: 100%;
+  max-width: 100%;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+.fleet-manager-dashboard h1 {
+  margin-bottom: 1.5rem;
+}
+
+/* ==================================================
+   STATUS OVERVIEW
+================================================== */
+
+.fleet-status-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  width: 100%;
+  margin-bottom: 2rem;
+}
+
+.status-card {
+  width: 100%;
+  min-width: 0;
+  padding: 1.25rem;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  box-sizing: border-box;
+}
+
+.status-label {
+  margin: 0 0 0.5rem;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-value {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+
+/* ==================================================
+   VEHICLE LIST
+================================================== */
+
+.vehicle-list {
+  width: 100%;
+  max-width: 100%;
+}
+
+.vehicle-header,
+.vehicle-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.vehicle-header {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.vehicle-row {
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.6rem;
+}
+
+.vehicle-header p,
+.vehicle-row p {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+/* ==================================================
+   LAPTOP / IPAD
+   768PX - 999PX
+================================================== */
+
+@media (min-width: 768px) and (max-width: 999px) {
+  .fleet-manager-dashboard {
+    padding: 1.5rem;
+  }
+
+  .fleet-status-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vehicle-header {
+    display: none;
+  }
+
+  .vehicle-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem 1.25rem;
+    width: 100%;
+    padding: 1.25rem;
+  }
+
+  .vehicle-row p {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .vehicle-row p::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03rem;
+  }
+}
+
+/* ==================================================
+   481PX - 767PX
+   COMPACT CARD LAYOUT
+================================================== */
+
+@media (min-width: 481px) and (max-width: 767px) {
+  .fleet-manager-dashboard {
+    padding: 1.25rem;
+  }
+
+  .fleet-status-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vehicle-header {
+    display: none;
+  }
+
+  .vehicle-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 1.25rem;
+    width: 100%;
+    padding: 1.25rem;
+  }
+
+  .vehicle-row p {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.88rem;
+  }
+
+  .vehicle-row p::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03rem;
+  }
+}
+
+/* ==================================================
+   PHONE
+   320PX - 480PX
+================================================== */
+
+@media (min-width: 320px) and (max-width: 480px) {
+  .fleet-manager-dashboard {
+    width: 100%;
+    max-width: 100%;
+    padding: 1rem;
+  }
+
+  .fleet-manager-dashboard h1 {
+    font-size: 1.3rem;
+  }
+
+  .fleet-status-overview {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .status-card {
+    width: 100%;
+    padding: 1rem;
+  }
+
+  .vehicle-header {
+    display: none;
+  }
+
+  .vehicle-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 1rem;
+  }
+
+  .vehicle-row p {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+    font-size: 0.88rem;
+  }
+
+  .vehicle-row p::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03rem;
+  }
+}
+
+/* ==================================================
+   BELOW 320PX
+================================================== */
+
+@media (max-width: 319px) {
+  .fleet-manager-dashboard {
+    display: none;
+  }
+
+  body::before {
+    content: "This application requires a screen width of at least 320px.";
+    display: block;
+    padding: 2rem 1rem;
+    color: #0f172a;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}

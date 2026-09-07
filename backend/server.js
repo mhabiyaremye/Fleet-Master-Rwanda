@@ -84,6 +84,7 @@ pool.query("select *from users where email = $1",
             expiresIn:"1h"
         }
      )
+      console.log("LOGIN ROLE:", result.rows[0].role);
     res.json({
         success:true,
         message:"Log in successful",

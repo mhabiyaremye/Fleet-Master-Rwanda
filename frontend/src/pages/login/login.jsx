@@ -34,6 +34,10 @@ function Login() {
         if (data.role === "Driver") {
           navigate("/driver");
         }
+        if (data.role === "Fleet Manager") {
+          console.log("Redirecting to Fleet Manager dashboard");
+          navigate("/fleet-manager");
+        }
       })
       .catch(function (error) {
         console.log(error);
