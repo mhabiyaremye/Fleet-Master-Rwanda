@@ -5,12 +5,88 @@
 .fleet-manager-dashboard {
   width: 100%;
   max-width: 100%;
-  padding: 1.5rem;
+  min-width: 0;
+  min-height: 100vh;
+
+  padding: 2rem;
+
+  background-color: #f8fafc;
+
   box-sizing: border-box;
 }
 
 .fleet-manager-dashboard h1 {
-  margin-bottom: 1.5rem;
+  margin: 0 0 1.75rem;
+
+  color: #0f172a;
+
+  font-size: 1.8rem;
+  font-weight: 700;
+
+  text-align: center;
+}
+
+/* ==================================================
+   FLEET MANAGER NAVIGATION
+================================================== */
+
+.fleet-manager-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+
+  gap: 0.5rem;
+
+  width: fit-content;
+  max-width: 100%;
+
+  margin: 0 auto 2rem;
+  padding: 0.4rem;
+
+  background-color: white;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+
+  box-sizing: border-box;
+}
+
+.fleet-manager-nav button {
+  min-width: 8rem;
+  max-width: 100%;
+
+  padding: 0.75rem 1.1rem;
+
+  border: none;
+  border-radius: 0.5rem;
+
+  background-color: transparent;
+
+  color: #475569;
+
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  box-sizing: border-box;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.fleet-manager-nav button:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.fleet-manager-nav button.active {
+  background-color: #0f172a;
+  color: white;
 }
 
 /* ==================================================
@@ -20,32 +96,50 @@
 .fleet-status-overview {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
+
+  gap: 1.25rem;
+
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
   margin-bottom: 2rem;
+
+  box-sizing: border-box;
 }
 
 .status-card {
   width: 100%;
+  max-width: 100%;
   min-width: 0;
-  padding: 1.25rem;
+
+  padding: 1.4rem;
+
   background-color: white;
+
   border: 1px solid #e2e8f0;
   border-radius: 0.75rem;
+
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+
   box-sizing: border-box;
 }
 
 .status-label {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.65rem;
+
   color: #64748b;
-  font-size: 0.85rem;
+
+  font-size: 0.82rem;
   font-weight: 600;
 }
 
 .status-value {
   margin: 0;
+
   color: #0f172a;
-  font-size: 1.7rem;
+
+  font-size: 1.9rem;
   font-weight: 700;
 }
 
@@ -56,37 +150,358 @@
 .vehicle-list {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
+
+  padding: 1.25rem;
+
+  background-color: white;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+
+  box-sizing: border-box;
 }
 
 .vehicle-header,
 .vehicle-row {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 1rem;
+
+  grid-template-columns:
+    minmax(0, 1.1fr)
+    minmax(0, 0.9fr)
+    minmax(0, 0.9fr)
+    minmax(0, 0.65fr)
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    minmax(0, 1.45fr)
+    minmax(0, 1fr);
+
+  gap: 0.75rem;
+
   align-items: center;
+
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
   box-sizing: border-box;
 }
 
 .vehicle-header {
-  padding: 0.75rem 1rem;
-  font-weight: 600;
-  border-bottom: 1px solid #cbd5e1;
+  padding: 0.9rem 1rem;
+
+  background-color: #f8fafc;
+
+  border-radius: 0.5rem;
+
+  color: #475569;
+
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .vehicle-row {
   padding: 1rem;
-  margin-bottom: 0.75rem;
+  margin-top: 0.65rem;
+
   background-color: white;
+
   border: 1px solid #e2e8f0;
-  border-radius: 0.6rem;
+  border-radius: 0.55rem;
+
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.vehicle-row:hover {
+  border-color: #cbd5e1;
+
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
 }
 
 .vehicle-header p,
 .vehicle-row p {
-  margin: 0;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
-  overflow-wrap: break-word;
+
+  margin: 0;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+
+  box-sizing: border-box;
+}
+
+.vehicle-row p {
+  color: #334155;
+
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+/* ==================================================
+   VEHICLE ACTION BUTTON
+================================================== */
+
+.vehicle-row button {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  padding: 0.55rem 0.7rem;
+
+  border: none;
+  border-radius: 0.45rem;
+
+  background-color: #0f172a;
+  color: white;
+
+  font-size: 0.78rem;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  white-space: normal;
+
+  box-sizing: border-box;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.vehicle-row button:hover {
+  background-color: #1e293b;
+}
+
+.vehicle-row button:active {
+  transform: scale(0.97);
+}
+
+/* ==================================================
+   ADD VEHICLE FORM
+================================================== */
+
+.add-vehicle-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  column-gap: 2rem;
+  row-gap: 1.5rem;
+
+  width: 100%;
+  max-width: 70rem;
+  min-width: 0;
+
+  margin: 0 auto;
+  padding: 2rem;
+
+  background-color: white;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+
+  box-sizing: border-box;
+}
+
+.add-vehicle-form input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  padding: 0.9rem 1rem;
+
+  background-color: white;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+
+  color: #0f172a;
+
+  font-size: 0.95rem;
+
+  box-sizing: border-box;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.add-vehicle-form input::placeholder {
+  color: #94a3b8;
+}
+
+.add-vehicle-form input:focus {
+  outline: none;
+
+  border-color: #64748b;
+
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.12);
+}
+
+.add-vehicle-form button {
+  width: fit-content;
+  max-width: 100%;
+  min-width: 9rem;
+
+  padding: 0.85rem 1.4rem;
+
+  border: none;
+  border-radius: 0.5rem;
+
+  background-color: #0f172a;
+  color: white;
+
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  box-sizing: border-box;
+
+  transition: background-color 0.2s ease;
+}
+
+.add-vehicle-form button:hover {
+  background-color: #1e293b;
+}
+
+.add-vehicle-form .message {
+  min-width: 0;
+
+  margin: 0;
+
+  align-self: center;
+
+  color: #475569;
+
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  overflow-wrap: anywhere;
+}
+/*==================================================
+Assiging a driver 
+==================================================== */
+.assignment-modal-overlay {
+  position: fixed;
+  inset: 0;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 1rem;
+
+  background-color: rgba(15, 23, 42, 0.45);
+
+  z-index: 1000;
+}
+
+.assignment-modal {
+  width: 100%;
+  max-width: 32rem;
+
+  padding: 1.5rem;
+
+  background-color: white;
+
+  border-radius: 0.75rem;
+
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+
+  box-sizing: border-box;
+}
+
+.assignment-modal h2 {
+  margin: 0 0 1rem;
+
+  color: #0f172a;
+}
+
+.assignment-modal p {
+  margin: 0 0 1.5rem;
+
+  color: #475569;
+}
+/* ==================================================
+   ASSIGNMENT MODAL EMPLOYEE DROPDOWN
+================================================== */
+
+.assignment-modal select {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1.25rem;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+
+  background-color: white;
+  color: #0f172a;
+
+  font-size: 0.9rem;
+
+  box-sizing: border-box;
+}
+
+.assignment-modal select:focus {
+  outline: none;
+  border-color: #64748b;
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.12);
+}
+/* ==================================================
+   MEDIUM DESKTOP
+   1000PX - 1279PX
+================================================== */
+
+@media (min-width: 1000px) and (max-width: 1279px) {
+  .fleet-manager-dashboard {
+    padding: 1.75rem;
+  }
+
+  .vehicle-header {
+    display: none;
+  }
+
+  .vehicle-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 1.25rem;
+
+    padding: 1.25rem;
+  }
+
+  .vehicle-row p {
+    display: flex;
+    flex-direction: column;
+
+    gap: 0.25rem;
+
+    min-width: 0;
+  }
+
+  .vehicle-row p::before {
+    content: attr(data-label);
+
+    color: #64748b;
+
+    font-size: 0.68rem;
+    font-weight: 700;
+
+    text-transform: uppercase;
+    letter-spacing: 0.03rem;
+  }
+
+  .vehicle-row button {
+    width: fit-content;
+    max-width: 100%;
+  }
 }
 
 /* ==================================================
@@ -99,8 +514,29 @@
     padding: 1.5rem;
   }
 
+  .fleet-manager-nav {
+    width: 100%;
+    max-width: 32rem;
+  }
+
+  .fleet-manager-nav button {
+    flex: 1;
+    min-width: 0;
+  }
+
   .fleet-status-overview {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .add-vehicle-form {
+    width: 100%;
+    max-width: 100%;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    column-gap: 1.5rem;
+
+    padding: 1.5rem;
   }
 
   .vehicle-header {
@@ -108,32 +544,46 @@
   }
 
   .vehicle-row {
-    display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem 1.25rem;
+
+    gap: 1.25rem;
+
     width: 100%;
+    max-width: 100%;
+
     padding: 1.25rem;
   }
 
   .vehicle-row p {
     display: flex;
     flex-direction: column;
+
     gap: 0.2rem;
+
+    min-width: 0;
   }
 
   .vehicle-row p::before {
     content: attr(data-label);
+
     color: #64748b;
+
     font-size: 0.68rem;
     font-weight: 700;
+
     text-transform: uppercase;
     letter-spacing: 0.03rem;
+  }
+
+  .vehicle-row button {
+    width: fit-content;
+    max-width: 100%;
   }
 }
 
 /* ==================================================
+   TABLET / COMPACT
    481PX - 767PX
-   COMPACT CARD LAYOUT
 ================================================== */
 
 @media (min-width: 481px) and (max-width: 767px) {
@@ -141,8 +591,34 @@
     padding: 1.25rem;
   }
 
+  .fleet-manager-dashboard h1 {
+    font-size: 1.55rem;
+  }
+
+  .fleet-manager-nav {
+    width: 100%;
+  }
+
+  .fleet-manager-nav button {
+    flex: 1;
+    min-width: 0;
+  }
+
   .fleet-status-overview {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .add-vehicle-form {
+    grid-template-columns: 1fr;
+
+    width: 100%;
+    max-width: 100%;
+
+    padding: 1.25rem;
+  }
+
+  .add-vehicle-form button {
+    width: 100%;
   }
 
   .vehicle-header {
@@ -150,27 +626,42 @@
   }
 
   .vehicle-row {
-    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem 1.25rem;
+
+    gap: 1.25rem;
+
     width: 100%;
+    max-width: 100%;
+
     padding: 1.25rem;
   }
 
   .vehicle-row p {
     display: flex;
     flex-direction: column;
+
     gap: 0.2rem;
+
+    min-width: 0;
+
     font-size: 0.88rem;
   }
 
   .vehicle-row p::before {
     content: attr(data-label);
+
     color: #64748b;
+
     font-size: 0.7rem;
     font-weight: 700;
+
     text-transform: uppercase;
     letter-spacing: 0.03rem;
+  }
+
+  .vehicle-row button {
+    width: fit-content;
+    max-width: 100%;
   }
 }
 
@@ -183,6 +674,7 @@
   .fleet-manager-dashboard {
     width: 100%;
     max-width: 100%;
+
     padding: 1rem;
   }
 
@@ -190,14 +682,49 @@
     font-size: 1.3rem;
   }
 
+  .fleet-manager-nav {
+    flex-direction: column;
+
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .fleet-manager-nav button {
+    width: 100%;
+    min-width: 0;
+  }
+
   .fleet-status-overview {
     grid-template-columns: 1fr;
+
     gap: 0.75rem;
   }
 
   .status-card {
     width: 100%;
+
     padding: 1rem;
+  }
+
+  .add-vehicle-form {
+    grid-template-columns: 1fr;
+
+    width: 100%;
+    max-width: 100%;
+
+    padding: 1rem;
+  }
+
+  .add-vehicle-form button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .vehicle-list {
+    width: 100%;
+    max-width: 100%;
+
+    padding: 0.75rem;
   }
 
   .vehicle-header {
@@ -205,30 +732,45 @@
   }
 
   .vehicle-row {
-    display: grid;
     grid-template-columns: 1fr;
+
     gap: 1rem;
+
     width: 100%;
     max-width: 100%;
     min-width: 0;
+
     padding: 1rem;
   }
 
   .vehicle-row p {
     display: flex;
     flex-direction: column;
+
     gap: 0.25rem;
+
+    width: 100%;
+    max-width: 100%;
     min-width: 0;
+
     font-size: 0.88rem;
   }
 
   .vehicle-row p::before {
     content: attr(data-label);
+
     color: #64748b;
+
     font-size: 0.7rem;
     font-weight: 700;
+
     text-transform: uppercase;
     letter-spacing: 0.03rem;
+  }
+
+  .vehicle-row button {
+    width: fit-content;
+    max-width: 100%;
   }
 }
 
@@ -243,10 +785,15 @@
 
   body::before {
     content: "This application requires a screen width of at least 320px.";
+
     display: block;
+
     padding: 2rem 1rem;
+
     color: #0f172a;
+
     text-align: center;
+
     font-size: 1rem;
     font-weight: 600;
   }
