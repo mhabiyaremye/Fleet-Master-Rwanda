@@ -6,10 +6,16 @@ const app=express();
 loadEnvFile("../.env");
 const pool = require ("./database");
 const vehicleRoutes=require("./vehicle-routes");
+const maintenanceRoutes = require("./maintenance-routes");
 const jwt=require("jsonwebtoken");
+const {
+    authenticateUser,
+    authorizeRoles
+} = require("./auth-middleware.js");
 app.use(cors());
 app.use(express.json());
 app.use("/vehicles",vehicleRoutes);
+app.use("/vehicles", maintenanceRoutes);
 
 app.post("/login",function(req,res){
 let email=req.body.email;
@@ -457,39 +463,6 @@ app.get("/get-pending-users",authenticateUser,authorizeAdmin,function(req,res){
 })
 }) */
 
-// the following middleware's is for token validation 
-function authenticateUser(req,res,next){
-    let authHeaders=req.headers.authorization;
-    if(!authHeaders){
-        res.json({
-            success:false,
-            message:"Authentication token requried"
-        })
-        return;
-    }
-    let parts=authHeaders.split(" ");
-    let token=parts[1];
-    if(parts[0] !=="Bearer" || !parts[1]){
-        res.json({
-            success:false,
-            message:"Authentication token is not valid "
-        })
-        return;
-    }
-    try{
-        let decoded=jwt.verify(token,process.env.JWT_SECRET);
-        req.user=decoded;
-    }
-    catch(error){
-        res.json({
-            success:false,
-            message:"Invalid or expired token"
-        })
-        return;
-    }
-    next();
-    
-}
 //the following middleware is for admin's authorization
 
 function authorizeAdmin(req,res,next){
@@ -504,8 +477,6 @@ function authorizeAdmin(req,res,next){
     }
     next();
 }
-
-
 
 app.patch("/approval",authenticateUser,authorizeAdmin,function(req,res){
     let employeeId = req.body.employeeId;
