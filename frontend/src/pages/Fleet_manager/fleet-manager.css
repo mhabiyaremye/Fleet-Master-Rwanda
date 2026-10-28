@@ -1,104 +1,130 @@
 /* ==========================================================================
    FLEET MASTER RWANDA
    MODULE: Fleet Manager Dashboard
-   FILE: fleet-manager.css
+   FILE: fleet-manager.css  (refactor v2 — mobile-first)
 
-   PURPOSE
-   -------
-   Provides the layout, styling, accessibility states, and responsive behavior
-   for the Fleet Manager interface.
+   STRUCTURE
+   1. Design tokens and dashboard base
+   2. Shared building blocks (focus, cards, controls, buttons, messages)
+   3. Navigation
+   4. Vehicle status overview
+   5. Vehicle list and actions
+   6. Add-vehicle form
+   7. Driver assignment modal
+   8. Vehicle maintenance
+   9. Fuel and energy planning
+   10. Accessibility and user-preference overrides
 
-   FUNCTIONAL AREAS
-   ----------------
-   1. Dashboard and design tokens
-   2. Navigation
-   3. Vehicle status overview
-   4. Vehicle list and actions
-   5. Add-vehicle form
-   6. Driver assignment modal
-   7. Vehicle maintenance form and history
-   8. Responsive layouts
+   BREAKPOINT SCALE (mobile-first, min-width, rem so it respects user font size)
+   base        < 30rem  (480px)   single column, stacked
+   30rem+      480px              2-column cards / status
+   37.5rem+    600px              2-column forms
+   48rem+      768px              3-column vehicle cards, nav becomes a pill bar
+   62.5rem+    1000px             4-column vehicle cards, 4-up status
+   80rem+      1280px             full vehicle table
 
-   DEPENDENCIES
-   ------------
-   React class names in fleet-manager.jsx.
-   Vehicle labels displayed on compact layouts use data-label attributes.
-   Maintenance and assignment behavior remains controlled by React handlers
-   and backend API endpoints.
-
-   MAINTENANCE RULE
-   ----------------
-   CSS controls presentation only. Do not implement vehicle status transitions,
-   authorization, validation, or API behavior in this stylesheet.
-
-   CHANGE HISTORY
-   --------------
-   - Consolidated duplicate assignment-modal declarations.
-   - Standardized design tokens, spacing, and control styling.
-   - Organized responsive rules and documented component dependencies.
-   - Preserved existing component class names.
+   NOTES
+   - Class names are unchanged, so no React changes are required.
+   - Presentation only; React and the backend control behavior.
+   - Compact vehicle rows rely on data-label attributes for field labels.
+   - Optional hooks: aria-current / aria-selected on nav buttons, and
+     .success / .error (or data-status) on message elements.
    ========================================================================== */
 
 /* ==========================================================================
    1. DESIGN TOKENS AND DASHBOARD BASE
    ========================================================================== */
 
-/*
-   PURPOSE:
-   Defines reusable colors, borders, shadows, and spacing values for the
-   Fleet Manager dashboard.
-
-   CHANGE HERE:
-   Update shared design values here instead of editing every component.
-*/
-
 .fleet-manager-dashboard {
+  /* Brand */
   --fm-color-primary: #0f172a;
   --fm-color-primary-hover: #1e293b;
   --fm-color-accent: #2563eb;
   --fm-color-accent-hover: #1d4ed8;
+  --fm-color-accent-soft: #eff6ff;
+  --fm-color-accent-border: #bfdbfe;
+  --fm-color-navy: #172b4d;
+  --fm-color-navy-light: #244d7d;
 
+  /* Text */
   --fm-color-heading: #0f172a;
   --fm-color-text: #334155;
+  --fm-color-label: #475569;
   --fm-color-muted: #64748b;
+  --fm-color-placeholder: #64748b; /* 4.7:1 on white (was 2.6:1) */
 
+  /* Surfaces */
   --fm-color-background: #f8fafc;
   --fm-color-surface: #ffffff;
+  --fm-color-surface-hover: #f1f5f9;
+
+  /* Borders and focus */
   --fm-color-border: #e2e8f0;
   --fm-color-border-strong: #cbd5e1;
+  --fm-color-divider: #edf1f6;
+  --fm-color-control-border: #8392a8; /* 3:1+ against white (WCAG 1.4.11) */
+  --fm-color-focus: rgba(37, 99, 235, 0.22);
 
-  --fm-color-focus: rgba(37, 99, 235, 0.2);
+  /* Feedback */
+  --fm-color-success: #15803d;
+  --fm-color-success-background: #f0fdf4;
+  --fm-color-error: #b91c1c;
+  --fm-color-error-background: #fef2f2;
+  --fm-color-warning: #92400e;
+  --fm-color-warning-background: #fffbeb;
 
-  --fm-radius-sm: 0.45rem;
+  /* Shape */
+  --fm-radius-sm: 0.375rem;
   --fm-radius-md: 0.5rem;
   --fm-radius-lg: 0.75rem;
+  --fm-radius-xl: 1rem;
 
-  --fm-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
-  --fm-shadow-md: 0 3px 10px rgba(15, 23, 42, 0.06);
+  /* Elevation */
+  --fm-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+  --fm-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.07);
+  --fm-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.16);
 
-  --fm-transition: 0.2s ease;
+  /* Spacing */
+  --fm-space-1: 0.25rem;
+  --fm-space-2: 0.5rem;
+  --fm-space-3: 0.75rem;
+  --fm-space-4: 1rem;
+  --fm-space-5: 1.25rem;
+  --fm-space-6: 1.5rem;
+  --fm-space-8: 2rem;
+  --fm-gutter: clamp(0.75rem, 2.5vw, 2rem);
+  --fm-section-gap: clamp(1.25rem, 3vw, 2rem);
+
+  /* Sizing */
+  --fm-content-max: 90rem;
+  --fm-control-height: 2.875rem;
+  --fm-tap-size: 2.75rem; /* ~44px touch target */
+  --fm-z-modal: 1000;
+
+  /* Motion */
+  --fm-transition: 180ms ease;
 
   width: 100%;
   max-width: 100%;
   min-width: 0;
   min-height: 100vh;
+  min-height: 100dvh;
 
-  padding: 2rem;
+  /* Centers content on ultra-wide screens without needing a wrapper */
+  padding-block: var(--fm-gutter);
+  padding-inline: max(
+    var(--fm-gutter),
+    calc((100% - var(--fm-content-max)) / 2)
+  );
 
   color: var(--fm-color-text);
   background-color: var(--fm-color-background);
 
+  font-family: inherit;
+  line-height: 1.5;
+
   box-sizing: border-box;
 }
-
-/*
-   PURPOSE:
-   Prevents padding and borders from increasing the intended dimensions of
-   dashboard components.
-
-   SCOPE:
-   Limited to the Fleet Manager dashboard.
-*/
 
 .fleet-manager-dashboard *,
 .fleet-manager-dashboard *::before,
@@ -106,44 +132,74 @@
   box-sizing: border-box;
 }
 
-/* Main dashboard heading */
+.fleet-manager-dashboard h1,
+.fleet-manager-dashboard h2,
+.fleet-manager-dashboard h3,
+.fleet-manager-dashboard h4 {
+  color: var(--fm-color-heading);
+  overflow-wrap: break-word;
+}
+
+.fleet-manager-dashboard p {
+  overflow-wrap: anywhere;
+}
 
 .fleet-manager-dashboard h1 {
-  margin: 0 0 1.75rem;
+  margin: 0 0 var(--fm-section-gap);
 
-  color: var(--fm-color-heading);
-
-  font-size: 1.8rem;
+  font-size: clamp(1.35rem, 2.5vw, 1.9rem);
   font-weight: 700;
+  line-height: 1.25;
   text-align: center;
+  text-wrap: balance;
+}
+
+.fleet-manager-dashboard button,
+.fleet-manager-dashboard input,
+.fleet-manager-dashboard select,
+.fleet-manager-dashboard textarea {
+  font: inherit;
+}
+
+.fleet-manager-dashboard button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fleet-manager-dashboard img,
+.fleet-manager-dashboard svg {
+  max-width: 100%;
 }
 
 /* ==========================================================================
-   2. FLEET MANAGER NAVIGATION
+   2. SHARED BUILDING BLOCKS
    ========================================================================== */
 
-/*
-   PURPOSE:
-   Displays the navigation controls for the Fleet Manager's different views.
+/* ---- 2.1 Focus (one consistent, clearly visible style) ------------------- */
 
-   EXPECTED CLASS:
-   .active is applied by React to the selected navigation button.
-*/
+.fleet-manager-dashboard :is(button, input, select, textarea, a):focus-visible {
+  outline: 2px solid var(--fm-color-accent);
+  outline-offset: 2px;
+}
 
-.fleet-manager-nav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
+.fleet-manager-dashboard input::placeholder,
+.fleet-manager-dashboard textarea::placeholder {
+  color: var(--fm-color-placeholder);
+  opacity: 1;
+}
 
-  gap: 0.5rem;
+.fleet-manager-dashboard button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
-  width: fit-content;
-  max-width: 100%;
+/* ---- 2.2 Card surface ---------------------------------------------------- */
 
-  margin: 0 auto 2rem;
-  padding: 0.4rem;
-
+.status-card,
+.vehicle-list,
+.add-vehicle-form,
+.maintenance-panel,
+.maintenance-history,
+.fuel-planning-section {
   background-color: var(--fm-color-surface);
 
   border: 1px solid var(--fm-color-border);
@@ -152,85 +208,318 @@
   box-shadow: var(--fm-shadow-sm);
 }
 
-.fleet-manager-nav button {
-  min-width: 8rem;
+/* ---- 2.3 Form labels ----------------------------------------------------- */
+
+.maintenance-panel > label,
+.maintenance-field label,
+.fuel-form-group label {
+  color: var(--fm-color-label);
+
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+/* ---- 2.4 Text controls (single source of truth) --------------------------- */
+
+.add-vehicle-form
+  :is(input:not([type="checkbox"], [type="radio"]), select, textarea),
+.assignment-modal select,
+.maintenance-panel > select,
+.maintenance-field
+  :is(input:not([type="checkbox"], [type="radio"]), select, textarea),
+.fuel-form-group
+  :is(input:not([type="checkbox"], [type="radio"]), select, textarea) {
+  display: block;
+
+  width: 100%;
   max-width: 100%;
+  min-width: 0;
+  min-height: var(--fm-control-height);
 
-  padding: 0.75rem 1.1rem;
+  padding: 0.7rem 0.85rem;
 
-  color: #475569;
-  background-color: transparent;
+  color: var(--fm-color-heading);
+  background-color: var(--fm-color-background);
 
-  border: none;
+  border: 1px solid var(--fm-color-control-border);
   border-radius: var(--fm-radius-md);
 
+  font-family: inherit;
   font-size: 0.9rem;
-  font-weight: 600;
-
-  cursor: pointer;
+  line-height: 1.5;
 
   transition:
-    background-color var(--fm-transition),
-    color var(--fm-transition);
+    border-color var(--fm-transition),
+    box-shadow var(--fm-transition),
+    background-color var(--fm-transition);
 }
 
-.fleet-manager-nav button:hover {
-  color: var(--fm-color-heading);
-  background-color: #f1f5f9;
+.add-vehicle-form textarea,
+.maintenance-field textarea,
+.fuel-form-group textarea {
+  min-height: 6.5rem;
+  resize: vertical;
 }
 
-/* Active navigation state */
+.add-vehicle-form :is(input, select, textarea):focus,
+.assignment-modal select:focus,
+.maintenance-panel > select:focus,
+.maintenance-field :is(input, select, textarea):focus,
+.fuel-form-group :is(input, select, textarea):focus {
+  background-color: var(--fm-color-surface);
+  border-color: var(--fm-color-accent);
+  box-shadow: 0 0 0 3px var(--fm-color-focus);
+}
 
-.fleet-manager-nav button.active {
+.fleet-manager-dashboard :is(input, select, textarea):disabled {
+  background-color: var(--fm-color-surface-hover);
+  cursor: not-allowed;
+}
+
+/* ---- 2.5 Buttons (single source of truth) --------------------------------- */
+
+/*
+   Override --fm-btn-bg / --fm-btn-bg-hover on a button group to re-color it
+   without rewriting the whole rule.
+*/
+
+.vehicle-row button,
+.add-vehicle-form button,
+.assignment-modal button,
+.maintenance-form > button,
+.maintenance-record-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  max-width: 100%;
+  min-width: 0;
+  min-height: var(--fm-tap-size);
+
+  padding: 0.6rem 1rem;
+
   color: #ffffff;
-  background-color: var(--fm-color-primary);
+  background-color: var(--fm-btn-bg, var(--fm-color-primary));
+
+  border: 1px solid transparent;
+  border-radius: var(--fm-radius-sm);
+
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+
+  overflow-wrap: anywhere;
+  cursor: pointer;
+
+  transition: background-color var(--fm-transition);
+}
+
+.vehicle-row button:hover:not(:disabled),
+.add-vehicle-form button:hover:not(:disabled),
+.assignment-modal button:hover:not(:disabled),
+.maintenance-form > button:hover:not(:disabled),
+.maintenance-record-actions button:hover:not(:disabled) {
+  background-color: var(--fm-btn-bg-hover, var(--fm-color-primary-hover));
+}
+
+.maintenance-form > button,
+.maintenance-record-actions button {
+  --fm-btn-bg: var(--fm-color-accent);
+  --fm-btn-bg-hover: var(--fm-color-accent-hover);
+}
+
+/* ---- 2.6 Feedback messages ----------------------------------------------- */
+
+.fleet-manager-dashboard
+  :is(
+    .message,
+    .assignment-message,
+    .maintenance-message,
+    .fuel-planning-message
+  ) {
+  overflow-wrap: anywhere;
+}
+
+/* Opt-in state hooks: add .success / .error (or data-status) in React */
+.fleet-manager-dashboard
+  :is(
+    .message,
+    .assignment-message,
+    .maintenance-message,
+    .fuel-planning-message
+  ):is(.success, .is-success, [data-status="success"]) {
+  color: var(--fm-color-success);
+}
+
+.fleet-manager-dashboard
+  :is(
+    .message,
+    .assignment-message,
+    .maintenance-message,
+    .fuel-planning-message
+  ):is(.error, .is-error, [data-status="error"]) {
+  color: var(--fm-color-error);
 }
 
 /* ==========================================================================
-   3. VEHICLE STATUS OVERVIEW
+   3. FLEET MANAGER NAVIGATION
    ========================================================================== */
 
 /*
-   PURPOSE:
-   Organizes the fleet overview metrics into four equal columns on wide
-   screens.
-
-   RESPONSIVE BEHAVIOR:
-   Reduces the column count on smaller screens in Section 8.
+   Strategy
+   - Never wraps, so items can never end up scattered across uneven rows.
+   - Small screens: full-width bar; items share the space equally when they
+     fit, and the bar scrolls horizontally (with edge shadows) when they don't.
+   - 768px+: compact centered pill bar that only grows as wide as its content.
+   - Scrolling is contained inside the bar so the page never scrolls sideways.
 */
 
-.fleet-status-overview {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-
-  gap: 1.25rem;
+.fleet-manager-nav {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  gap: 0.25rem;
 
   width: 100%;
   max-width: 100%;
   min-width: 0;
 
-  margin-bottom: 2rem;
-}
+  margin: 0 auto var(--fm-section-gap);
+  padding: 0.375rem;
 
-.status-card {
-  min-width: 0;
-  padding: 1.4rem;
-
-  background-color: var(--fm-color-surface);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 0.375rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 
   border: 1px solid var(--fm-color-border);
   border-radius: var(--fm-radius-lg);
 
   box-shadow: var(--fm-shadow-sm);
+
+  /* Edge shadows appear only while there is more content to scroll to */
+  background-color: var(--fm-color-surface);
+  background-image:
+    linear-gradient(to right, var(--fm-color-surface) 30%, transparent),
+    linear-gradient(to left, var(--fm-color-surface) 30%, transparent),
+    radial-gradient(
+      farthest-side at 0 50%,
+      rgba(15, 23, 42, 0.18),
+      transparent
+    ),
+    radial-gradient(
+      farthest-side at 100% 50%,
+      rgba(15, 23, 42, 0.18),
+      transparent
+    );
+  background-position:
+    left center,
+    right center,
+    left center,
+    right center;
+  background-size:
+    2rem 100%,
+    2rem 100%,
+    0.75rem 100%,
+    0.75rem 100%;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
+
+.fleet-manager-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.fleet-manager-nav button {
+  flex: 1 0 auto;
+
+  min-width: 0;
+  min-height: var(--fm-tap-size);
+
+  padding: 0.65rem 1rem;
+
+  color: var(--fm-color-label);
+  background-color: transparent;
+
+  border: 1px solid transparent;
+  border-radius: var(--fm-radius-md);
+
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  white-space: nowrap;
+
+  cursor: pointer;
+  scroll-snap-align: center;
+
+  transition:
+    color var(--fm-transition),
+    background-color var(--fm-transition),
+    border-color var(--fm-transition);
+}
+
+.fleet-manager-nav button:hover {
+  color: var(--fm-color-heading);
+  background-color: var(--fm-color-surface-hover);
+}
+
+.fleet-manager-nav
+  button:is(.active, [aria-current="page"], [aria-selected="true"]) {
+  color: #ffffff;
+  background-color: var(--fm-color-primary);
+}
+
+.fleet-manager-nav
+  button:is(.active, [aria-current="page"], [aria-selected="true"]):hover {
+  background-color: var(--fm-color-primary-hover);
+}
+
+@media (min-width: 48rem) {
+  .fleet-manager-nav {
+    width: fit-content;
+    overflow-x: auto;
+  }
+
+  .fleet-manager-nav button {
+    flex: 0 0 auto;
+    padding-inline: 1.25rem;
+  }
+}
+
+/* ==========================================================================
+   4. VEHICLE STATUS OVERVIEW
+   ========================================================================== */
+
+.fleet-status-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(0.75rem, 1.5vw, 1.25rem);
+
+  width: 100%;
+  min-width: 0;
+
+  margin-bottom: var(--fm-section-gap);
+}
+
+.status-card {
+  min-width: 0;
+  padding: clamp(1rem, 2vw, 1.4rem);
 }
 
 .status-label {
-  margin: 0 0 0.65rem;
+  margin: 0 0 0.625rem;
 
   color: var(--fm-color-muted);
 
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 600;
+  line-height: 1.45;
 }
 
 .status-value {
@@ -238,101 +527,82 @@
 
   color: var(--fm-color-heading);
 
-  font-size: 1.9rem;
+  font-size: clamp(1.5rem, 2.8vw, 2rem);
   font-weight: 700;
+  line-height: 1.2;
+
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 30rem) {
+  .fleet-status-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 62.5rem) {
+  .fleet-status-overview {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 /* ==========================================================================
-   4. VEHICLE LIST AND VEHICLE ACTIONS
+   5. VEHICLE LIST AND ACTIONS
    ========================================================================== */
 
 /*
-   PURPOSE:
-   Provides the main container for the vehicle listing.
+   Two presentations of the same markup:
+   - Below 1280px: each row is a card; every value shows its data-label.
+   - 1280px and above: a table-like grid with a visible header.
 
-   The desktop layout uses eight grid columns. These correspond to the
-   existing vehicle header and row content in the React component.
-
-   IMPORTANT:
-   If the number or order of vehicle fields changes in React, update both
-   grid templates below to match.
+   The table columns are declared ONCE (--vehicle-table-columns) and shared by
+   header and row, so they can never drift out of sync.
 */
 
 .vehicle-list {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-
-  padding: 1.25rem;
-
-  background-color: var(--fm-color-surface);
-
-  border: 1px solid var(--fm-color-border);
-  border-radius: var(--fm-radius-lg);
-
-  box-shadow: var(--fm-shadow-sm);
-}
-
-/* Shared desktop grid for vehicle column headings and vehicle data */
-
-.vehicle-header,
-.vehicle-row {
-  display: grid;
-
-  grid-template-columns:
-    minmax(0, 1.1fr)
-    minmax(0, 0.9fr)
-    minmax(0, 0.9fr)
-    minmax(0, 0.65fr)
-    minmax(0, 1fr)
-    minmax(0, 1fr)
-    minmax(0, 1.45fr)
+  --vehicle-cols: 1;
+  --vehicle-table-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 0.9fr)
+    minmax(0, 0.65fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.45fr)
     minmax(0, 1fr);
 
-  align-items: center;
-  gap: 0.75rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  padding: clamp(0.625rem, 2vw, 1.25rem);
+}
+
+.vehicle-header {
+  display: none; /* shown in table mode only */
+}
+
+.vehicle-row {
+  display: grid;
+  grid-template-columns: repeat(var(--vehicle-cols), minmax(0, 1fr));
+  align-items: start;
+  gap: 0.875rem 1rem;
 
   width: 100%;
   max-width: 100%;
   min-width: 0;
-}
 
-/* Vehicle column headings */
-
-.vehicle-header {
-  padding: 0.9rem 1rem;
-
-  color: #475569;
-  background-color: var(--fm-color-background);
-
-  border-radius: var(--fm-radius-md);
-
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-/* Individual vehicle rows */
-
-.vehicle-row {
-  margin-top: 0.65rem;
-  padding: 1rem;
+  margin-top: 0.625rem;
+  padding: 0.875rem;
 
   background-color: var(--fm-color-surface);
 
   border: 1px solid var(--fm-color-border);
-  border-radius: 0.55rem;
+  border-radius: var(--fm-radius-md);
 
   transition:
-    box-shadow var(--fm-transition),
-    border-color var(--fm-transition);
+    border-color var(--fm-transition),
+    box-shadow var(--fm-transition);
 }
 
 .vehicle-row:hover {
   border-color: var(--fm-color-border-strong);
-  box-shadow: var(--fm-shadow-md);
+  box-shadow: var(--fm-shadow-sm);
 }
-
-/* Prevent long values from breaking the vehicle grid */
 
 .vehicle-header p,
 .vehicle-row p {
@@ -343,316 +613,228 @@
   margin: 0;
 
   overflow-wrap: anywhere;
-  word-break: break-word;
 }
 
+/* Card mode: label stacked above value */
 .vehicle-row p {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
   color: var(--fm-color-text);
 
-  font-size: 0.88rem;
-  line-height: 1.4;
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
-/*
-   RESPONSIVE LABELS:
-   Compact layouts display the field name above each value through
-   the data-label attribute on the corresponding paragraph.
+.vehicle-row p::before {
+  content: attr(data-label);
 
-   Example:
-   <p data-label="Registration">...</p>
+  color: var(--fm-color-muted);
 
-   Verify that the existing JSX provides data-label attributes before
-   relying on these labels at smaller screen widths.
-*/
-
-/* Vehicle row action buttons */
+  font-size: 0.75rem; /* was 11px */
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
 
 .vehicle-row button {
   width: 100%;
-  max-width: 100%;
-  min-width: 0;
-
-  padding: 0.55rem 0.7rem;
-
-  color: #ffffff;
-  background-color: var(--fm-color-primary);
-
-  border: none;
-  border-radius: var(--fm-radius-sm);
-
-  font-size: 0.78rem;
-  font-weight: 600;
-
-  cursor: pointer;
-
-  white-space: normal;
-
-  transition:
-    background-color var(--fm-transition),
-    transform var(--fm-transition);
+  font-size: 0.8125rem;
 }
 
-.vehicle-row button:hover {
-  background-color: var(--fm-color-primary-hover);
+@media (min-width: 30rem) {
+  .vehicle-list {
+    --vehicle-cols: 2;
+  }
 }
 
-.vehicle-row button:active {
-  transform: scale(0.97);
+@media (min-width: 48rem) {
+  .vehicle-list {
+    --vehicle-cols: 3;
+  }
+
+  .vehicle-row {
+    padding: 1.125rem;
+  }
+}
+
+@media (min-width: 62.5rem) {
+  .vehicle-list {
+    --vehicle-cols: 4;
+  }
+}
+
+/* Table mode */
+@media (min-width: 80rem) {
+  .vehicle-header,
+  .vehicle-row {
+    display: grid;
+    grid-template-columns: var(--vehicle-table-columns);
+    align-items: center;
+    gap: 0.625rem;
+  }
+
+  .vehicle-header {
+    padding: 0.875rem;
+
+    color: var(--fm-color-label);
+    background-color: var(--fm-color-surface-hover);
+
+    border-radius: var(--fm-radius-md);
+
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .vehicle-row {
+    padding: 0.875rem;
+  }
+
+  .vehicle-row p {
+    display: block;
+    font-size: 0.85rem;
+  }
+
+  .vehicle-row p::before {
+    content: none;
+  }
+
+  .vehicle-row button {
+    min-height: 2.5rem;
+    padding: 0.5rem 0.625rem;
+    font-size: 0.78rem;
+  }
 }
 
 /* ==========================================================================
-   5. ADD-VEHICLE FORM
+   6. ADD-VEHICLE FORM
    ========================================================================== */
-
-/*
-   PURPOSE:
-   Styles the form used to register a vehicle.
-
-   EXPECTED CONTENT:
-   Inputs and a submit button, with an optional .message element for feedback.
-
-   NOTE:
-   This selector targets inputs as in the existing implementation. If the
-   form later gains selects or textareas, add those controls deliberately.
-*/
 
 .add-vehicle-form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 
-  column-gap: 2rem;
-  row-gap: 1.5rem;
+  column-gap: clamp(1rem, 3vw, 2rem);
+  row-gap: 1.25rem;
+  align-items: start;
 
   width: 100%;
   max-width: 70rem;
   min-width: 0;
 
   margin: 0 auto;
-  padding: 2rem;
-
-  background-color: var(--fm-color-surface);
-
-  border: 1px solid var(--fm-color-border);
-  border-radius: var(--fm-radius-lg);
-
-  box-shadow: var(--fm-shadow-sm);
+  padding: clamp(1rem, 3vw, 2rem);
 }
 
-/* Vehicle form input controls */
-
-.add-vehicle-form input {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-
-  padding: 0.9rem 1rem;
-
-  color: var(--fm-color-heading);
-  background-color: var(--fm-color-surface);
-
-  border: 1px solid var(--fm-color-border-strong);
-  border-radius: var(--fm-radius-md);
-
-  font-size: 0.95rem;
-
-  transition:
-    border-color var(--fm-transition),
-    box-shadow var(--fm-transition);
+.add-vehicle-form textarea {
+  grid-column: 1 / -1;
 }
-
-.add-vehicle-form input::placeholder {
-  color: #94a3b8;
-}
-
-.add-vehicle-form input:focus {
-  outline: none;
-
-  border-color: var(--fm-color-accent);
-  box-shadow: 0 0 0 3px var(--fm-color-focus);
-}
-
-/* Vehicle form submission */
 
 .add-vehicle-form button {
-  width: fit-content;
-  max-width: 100%;
-  min-width: 9rem;
-
-  padding: 0.85rem 1.4rem;
-
-  color: #ffffff;
-  background-color: var(--fm-color-primary);
-
-  border: none;
-  border-radius: var(--fm-radius-md);
-
-  font-size: 0.9rem;
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition: background-color var(--fm-transition);
+  justify-self: stretch;
+  width: 100%;
+  min-width: 0;
 }
-
-.add-vehicle-form button:hover {
-  background-color: var(--fm-color-primary-hover);
-}
-
-/* Form submission or validation feedback */
 
 .add-vehicle-form .message {
   min-width: 0;
   margin: 0;
-
   align-self: center;
 
-  color: #475569;
+  color: var(--fm-color-text);
 
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 600;
+}
 
-  overflow-wrap: anywhere;
+@media (min-width: 37.5rem) {
+  .add-vehicle-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .add-vehicle-form button {
+    justify-self: start;
+    width: fit-content;
+    min-width: 9rem;
+  }
 }
 
 /* ==========================================================================
-   6. DRIVER ASSIGNMENT MODAL
+   7. DRIVER ASSIGNMENT MODAL
    ========================================================================== */
-
-/*
-   PURPOSE:
-   Styles the modal used to assign a driver to a vehicle.
-
-   FUNCTIONAL DEPENDENCIES:
-   - React controls when the modal is visible.
-   - React handles driver selection and assignment submission.
-   - .assignment-message displays feedback.
-   - .assignment-success styles the successful-assignment view.
-
-   MAINTENANCE NOTE:
-   The original stylesheet declared several of these selectors twice.
-   They are consolidated here to provide one predictable source of truth.
-*/
-
-/* Full-screen backdrop */
 
 .assignment-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: var(--fm-z-modal);
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  padding: 1rem;
+  padding: clamp(0.5rem, 3vw, 1.25rem);
 
-  background-color: rgba(15, 23, 42, 0.55);
+  background-color: rgba(15, 23, 42, 0.6);
+
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  animation: fm-fade-in 160ms ease-out;
 }
-
-/* Modal container */
 
 .assignment-modal {
   width: 100%;
   max-width: 32rem;
-  max-height: calc(100vh - 2rem);
+  max-height: calc(100vh - 1rem);
+  max-height: calc(100dvh - 1rem);
+  min-width: 0;
 
-  padding: 1.75rem;
+  padding: clamp(0.875rem, 4vw, 1.75rem);
 
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
 
   background-color: var(--fm-color-surface);
 
   border: 1px solid var(--fm-color-border);
   border-radius: var(--fm-radius-lg);
 
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
-}
+  box-shadow: var(--fm-shadow-lg);
 
-/* Modal heading */
+  animation: fm-pop-in 180ms ease-out;
+}
 
 .assignment-modal h2 {
   margin: 0 0 1rem;
 
-  color: var(--fm-color-heading);
-
-  font-size: 1.25rem;
+  font-size: clamp(1.1rem, 3vw, 1.3rem);
+  line-height: 1.35;
 }
-
-/* Modal explanatory text */
 
 .assignment-modal p {
   margin: 0 0 1.25rem;
 
-  color: #475569;
+  color: var(--fm-color-label);
 
-  line-height: 1.6;
+  font-size: 0.9rem;
+  line-height: 1.65;
 }
-
-/* Employee dropdown */
 
 .assignment-modal select {
-  display: block;
-
-  width: 100%;
-  min-width: 0;
-
   margin: 0 0 1rem;
-  padding: 0.8rem 1rem;
-
-  color: var(--fm-color-heading);
-  background-color: var(--fm-color-surface);
-
-  border: 1px solid var(--fm-color-border-strong);
-  border-radius: var(--fm-radius-md);
-
-  font-family: inherit;
-  font-size: 0.9rem;
 }
-
-.assignment-modal select:focus {
-  outline: none;
-
-  border-color: var(--fm-color-accent);
-  box-shadow: 0 0 0 3px var(--fm-color-focus);
-}
-
-/* Assignment success or error feedback */
 
 .assignment-message {
   min-height: 1.25rem;
   margin: 0 0 1rem;
-
-  overflow-wrap: anywhere;
 }
-
-/* Modal action buttons */
 
 .assignment-modal button {
-  max-width: 100%;
-
-  margin: 0 0.65rem 0.5rem 0;
-  padding: 0.65rem 1.1rem;
-
-  color: #ffffff;
-  background-color: var(--fm-color-primary);
-
-  border: none;
-  border-radius: var(--fm-radius-sm);
-
-  font-family: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition: background-color var(--fm-transition);
+  margin: 0 0.5rem 0.5rem 0;
 }
-
-.assignment-modal button:hover {
-  background-color: var(--fm-color-primary-hover);
-}
-
-/* Success view */
 
 .assignment-success {
   text-align: center;
@@ -662,61 +844,46 @@
   margin-right: 0;
 }
 
+@keyframes fm-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fm-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.98);
+  }
+}
+
 /* ==========================================================================
-   7. VEHICLE MAINTENANCE
+   8. VEHICLE MAINTENANCE
    ========================================================================== */
 
-/*
-   PURPOSE:
-   Styles the vehicle maintenance workflow, including vehicle selection,
-   maintenance entry, maintenance history, completion actions, and readiness
-   confirmation.
-
-   REACT DEPENDENCIES:
-   - .maintenance-section
-   - .maintenance-form
-   - .maintenance-record-list
-   - .maintenance-record
-   - .maintenance-record-actions
-   - .maintenance-record-details
-
-   BUSINESS RULE:
-   This stylesheet does not change maintenance status or vehicle availability.
-   Those transitions remain controlled by React and the backend.
-*/
-
-/* Maintenance-specific design tokens */
-
 .maintenance-section {
-  --maintenance-navy: #172b4d;
-  --maintenance-blue: var(--fm-color-accent, #2563eb);
-  --maintenance-border: var(--fm-color-border, #e2e8f0);
-  --maintenance-muted: var(--fm-color-muted, #64748b);
-
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
 
   width: 100%;
   min-width: 0;
 
-  color: #1e293b;
+  color: var(--fm-color-text);
 }
 
-.maintenance-section *,
-.maintenance-section *::before,
-.maintenance-section *::after {
-  box-sizing: border-box;
-}
-
-/* Maintenance page heading and introduction */
+/* Introduction banner */
 
 .maintenance-header {
-  padding: 1.75rem 1.875rem;
+  padding: clamp(1rem, 3vw, 1.875rem);
 
-  background: linear-gradient(120deg, #172b4d, #244d7d);
+  background: linear-gradient(
+    120deg,
+    var(--fm-color-navy),
+    var(--fm-color-navy-light)
+  );
 
-  border-radius: 0.875rem;
+  border-radius: var(--fm-radius-lg);
 
   box-shadow: 0 6px 18px rgba(23, 43, 77, 0.1);
 }
@@ -726,9 +893,9 @@
 
   color: #ffffff;
 
-  font-size: 1.65rem;
+  font-size: clamp(1.3rem, 3vw, 1.7rem);
   font-weight: 700;
-  letter-spacing: -0.025em;
+  line-height: 1.3;
 }
 
 .maintenance-header p {
@@ -737,344 +904,209 @@
 
   color: #dbeafe;
 
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   line-height: 1.7;
 }
 
-/* Maintenance entry and history panels */
+/* Panels */
 
 .maintenance-panel,
 .maintenance-history {
   min-width: 0;
-  padding: 1.5rem;
-
-  background-color: #ffffff;
-
-  border: 1px solid var(--maintenance-border);
-  border-radius: 0.8125rem;
-
-  box-shadow: var(--fm-shadow-sm, 0 3px 12px rgba(15, 23, 42, 0.035));
+  padding: clamp(0.875rem, 2.5vw, 1.5rem);
 }
 
 .maintenance-panel h3,
 .maintenance-history h3 {
   margin: 0 0 1.25rem;
 
-  color: var(--maintenance-navy);
+  color: var(--fm-color-navy);
 
   font-size: 1.05rem;
   font-weight: 700;
+  line-height: 1.4;
 }
 
 .maintenance-panel h3 {
   padding-bottom: 0.875rem;
-
-  border-bottom: 1px solid #edf1f6;
-}
-
-/* Vehicle selector label */
-
-.maintenance-panel > label {
-  display: block;
-
-  margin-bottom: 0.5rem;
-
-  color: #475569;
-
-  font-size: 0.84rem;
-  font-weight: 650;
+  border-bottom: 1px solid var(--fm-color-divider);
 }
 
 /* Vehicle selector */
 
-.maintenance-panel > select {
+.maintenance-panel > label {
   display: block;
-
-  width: 100%;
-  min-width: 0;
-  min-height: 2.875rem;
-
-  padding: 0.6875rem 0.8125rem;
-
-  color: #1e293b;
-  background-color: #f8fafc;
-
-  border: 1px solid #d7e0eb;
-  border-radius: 0.5rem;
-
-  font: inherit;
-  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
 }
 
-/* Maintenance form grid */
+.maintenance-panel > select {
+  margin: 0 0 1.25rem;
+}
+
+/* Entry form */
 
 .maintenance-form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-
-  gap: 1.25rem 1.375rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem 1.375rem;
   align-items: start;
-}
 
-/* Individual form field */
+  min-width: 0;
+}
 
 .maintenance-field {
   display: flex;
   flex-direction: column;
-
   gap: 0.5rem;
 
   min-width: 0;
 }
 
-/* Fields that must span the entire form */
-
 .maintenance-field-full {
   grid-column: 1 / -1;
 }
 
-/* Maintenance form labels */
-
-.maintenance-field label {
-  color: #475569;
-
-  font-size: 0.84rem;
-  font-weight: 650;
-  line-height: 1.4;
-}
-
-/* Maintenance form controls */
-
-.maintenance-field input,
-.maintenance-field select,
-.maintenance-field textarea {
-  display: block;
-
-  width: 100%;
-  min-width: 0;
-  min-height: 2.875rem;
-
-  margin: 0;
-  padding: 0.6875rem 0.8125rem;
-
-  color: #1e293b;
-  background-color: #f8fafc;
-
-  border: 1px solid #d7e0eb;
-  border-radius: 0.5rem;
-
-  font-family: inherit;
-  font-size: 0.9rem;
-  line-height: 1.5;
-
-  transition:
-    border-color var(--fm-transition, 0.2s ease),
-    box-shadow var(--fm-transition, 0.2s ease),
-    background-color var(--fm-transition, 0.2s ease);
-}
-
-/* Maintenance description field */
-
 .maintenance-field textarea {
   min-height: 7.5rem;
-  resize: vertical;
 }
-
-/* Consistent focus appearance for maintenance controls */
-
-.maintenance-panel > select:focus,
-.maintenance-field input:focus,
-.maintenance-field select:focus,
-.maintenance-field textarea:focus {
-  outline: none;
-
-  background-color: #ffffff;
-
-  border-color: var(--maintenance-blue);
-
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-}
-
-/* Maintenance form submit button */
 
 .maintenance-form > button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
   grid-column: 1 / -1;
 
   width: 100%;
   min-height: 3rem;
 
   margin-top: 0.125rem;
-  padding: 0.75rem 1.125rem;
 
-  color: #ffffff;
-  background-color: var(--maintenance-blue);
-
-  border: none;
-  border-radius: 0.5rem;
-
-  font-family: inherit;
-  font-size: 0.91rem;
+  font-size: 0.9rem;
   font-weight: 700;
-
-  cursor: pointer;
-
-  transition:
-    background-color var(--fm-transition, 0.2s ease),
-    transform var(--fm-transition, 0.2s ease);
 }
 
-.maintenance-form > button:hover:not(:disabled) {
-  background-color: #1d4ed8;
-  transform: translateY(-1px);
-}
-
-/* Preserve disabled states when React disables submission */
-
-.maintenance-form > button:disabled {
-  background-color: #94a3b8;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Maintenance feedback and empty-history messages */
+/* Feedback and empty states */
 
 .maintenance-message,
 .maintenance-history > p {
   margin: 0 0 1rem;
   padding: 0.75rem 0.875rem;
 
-  color: #475569;
-  background-color: #f8fafc;
+  color: var(--fm-color-label);
+  background-color: var(--fm-color-background);
 
-  border: 1px solid var(--maintenance-border);
-  border-radius: 0.5rem;
+  border: 1px solid var(--fm-color-border);
+  border-radius: var(--fm-radius-md);
 
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   line-height: 1.6;
-
-  overflow-wrap: anywhere;
 }
 
 .maintenance-history > p:last-child {
   margin-bottom: 0;
 }
 
-/* Maintenance history card collection */
+/* History list */
 
 .maintenance-record-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
 
-  gap: 1rem;
-
+  width: 100%;
   min-width: 0;
 }
-
-/* Individual maintenance record */
 
 .maintenance-record {
   min-width: 0;
-  padding: 1.125rem;
+  padding: clamp(0.875rem, 2vw, 1.125rem);
 
-  background-color: #ffffff;
+  background-color: var(--fm-color-surface);
 
-  border: 1px solid var(--maintenance-border);
-  border-radius: 0.6875rem;
+  border: 1px solid var(--fm-color-border);
+  border-radius: var(--fm-radius-md);
 
   transition:
-    border-color var(--fm-transition, 0.2s ease),
-    box-shadow var(--fm-transition, 0.2s ease);
+    border-color var(--fm-transition),
+    box-shadow var(--fm-transition);
 }
 
 .maintenance-record:hover {
-  border-color: #bfdbfe;
-  box-shadow: 0 5px 15px rgba(15, 23, 42, 0.05);
+  border-color: var(--fm-color-accent-border);
+  box-shadow: var(--fm-shadow-sm);
 }
-
-/* Record title and status */
 
 .maintenance-record-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-direction: column;
 
-  gap: 0.75rem;
+  gap: 0.625rem;
 
   margin-bottom: 0.75rem;
 }
 
 .maintenance-record-header h4 {
+  flex: 1 1 8rem;
+
   min-width: 0;
   margin: 0;
 
-  color: var(--maintenance-navy);
+  color: var(--fm-color-navy);
 
-  font-size: 0.97rem;
+  font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.5;
-
-  overflow-wrap: anywhere;
 }
-
-/* Base maintenance status badge */
 
 .maintenance-status {
   flex-shrink: 0;
+  max-width: 100%;
 
-  padding: 0.3125rem 0.5625rem;
+  padding: 0.3125rem 0.625rem;
 
-  color: #1d4ed8;
-  background-color: #eff6ff;
+  color: var(--fm-color-accent-hover);
+  background-color: var(--fm-color-accent-soft);
 
   border: 1px solid #dbeafe;
-  border-radius: 20px;
+  border-radius: 999px;
 
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
-
+  line-height: 1.4;
   text-transform: capitalize;
-}
 
-/* Maintenance description */
+  overflow-wrap: anywhere;
+}
 
 .maintenance-record > p {
   margin: 0 0 1rem;
 
-  color: var(--maintenance-muted);
+  color: var(--fm-color-muted);
 
-  font-size: 0.87rem;
+  font-size: 0.875rem;
   line-height: 1.65;
-
-  overflow-wrap: anywhere;
 }
 
-/* Date, odometer, cost, and completion information */
+/* Date, odometer, cost and completion */
 
 .maintenance-record-details {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
 
-  gap: 0.875rem;
-
+  min-width: 0;
   padding-top: 0.9375rem;
 
-  border-top: 1px solid #edf1f6;
+  border-top: 1px solid var(--fm-color-divider);
 }
 
 .maintenance-record-details p {
   min-width: 0;
   margin: 0;
 
-  color: var(--maintenance-muted);
+  color: var(--fm-color-muted);
 
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   line-height: 1.6;
-
-  overflow-wrap: anywhere;
 }
 
 .maintenance-record-details strong {
@@ -1082,18 +1114,18 @@
 
   margin-bottom: 0.1875rem;
 
-  color: #334155;
+  color: var(--fm-color-text);
 
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
-/* Complete maintenance and confirm readiness actions */
+/* Record actions */
 
 .maintenance-record-actions {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  align-items: stretch;
+  flex-direction: column;
 
   gap: 0.625rem;
 
@@ -1101,441 +1133,363 @@
 }
 
 .maintenance-record-actions button {
-  max-width: 100%;
-  padding: 0.5625rem 0.875rem;
-
-  color: #ffffff;
-  background-color: var(--fm-color-accent, #2563eb);
-
-  border: none;
-  border-radius: 0.375rem;
-
-  font-family: inherit;
+  width: 100%;
   font-size: 0.8125rem;
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition: background-color var(--fm-transition, 0.2s ease);
 }
-
-.maintenance-record-actions button:hover {
-  background-color: var(--fm-color-accent-hover, #1d4ed8);
-}
-
-/* Keyboard focus for maintenance actions */
-
-.maintenance-record-actions button:focus-visible,
-.maintenance-form > button:focus-visible,
-.vehicle-row button:focus-visible,
-.add-vehicle-form button:focus-visible,
-.fleet-manager-nav button:focus-visible,
-.assignment-modal button:focus-visible {
-  outline: 3px solid #93c5fd;
-  outline-offset: 2px;
-}
-
-/* Confirmed readiness feedback */
 
 .maintenance-record-actions p {
   margin: 0;
 
-  color: #15803d;
+  color: var(--fm-color-success);
 
   font-size: 0.8125rem;
   font-weight: 600;
+  line-height: 1.5;
 }
 
-/* ==========================================================================
-   8. RESPONSIVE LAYOUTS
-   ========================================================================== */
-
-/*
-   BREAKPOINT STRATEGY
-   -------------------
-   1280px and above: Full desktop vehicle grid.
-   1000px–1279px:    Four-column vehicle cards.
-   768px–999px:      Three-column vehicle cards.
-   481px–767px:      Two-column vehicle cards.
-   480px and below:  Single-column vehicle cards.
-
-   IMPORTANT:
-   The vehicle header is hidden on compact layouts. Each vehicle value must
-   have a meaningful data-label attribute for its replacement label to show.
-
-   These breakpoints control layout only; they do not change application
-   permissions, business rules, or API behavior.
-*/
-
-/* --------------------------------------------------------------------------
-   8.1. MEDIUM DESKTOP — 1000px TO 1279px
-   -------------------------------------------------------------------------- */
-
-@media (min-width: 1000px) and (max-width: 1279px) {
-  .fleet-manager-dashboard {
-    padding: 1.75rem;
-  }
-
-  /* Replace the wide vehicle header with labels inside each row. */
-
-  .vehicle-header {
-    display: none;
-  }
-
-  .vehicle-row {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-
-    gap: 1.25rem;
-    padding: 1.25rem;
-  }
-
-  .vehicle-row p {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    min-width: 0;
-  }
-
-  .vehicle-row p::before {
-    content: attr(data-label);
-
-    color: var(--fm-color-muted, #64748b);
-
-    font-size: 0.68rem;
-    font-weight: 700;
-
-    text-transform: uppercase;
-    letter-spacing: 0.03rem;
-  }
-
-  .vehicle-row button {
-    width: fit-content;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   8.2. TABLET / SMALL LAPTOP — 768px TO 999px
-   -------------------------------------------------------------------------- */
-
-@media (min-width: 768px) and (max-width: 999px) {
-  .fleet-manager-dashboard {
-    padding: 1.5rem;
-  }
-
-  /* Navigation fills the available space without overflowing. */
-
-  .fleet-manager-nav {
-    width: 100%;
-    max-width: 32rem;
-  }
-
-  .fleet-manager-nav button {
-    flex: 1;
-    min-width: 0;
-  }
-
-  /* Two-column fleet overview. */
-
-  .fleet-status-overview {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  /* Retain the two-column vehicle registration form. */
-
-  .add-vehicle-form {
-    width: 100%;
-    max-width: 100%;
-
-    column-gap: 1.5rem;
-    padding: 1.5rem;
-  }
-
-  /* Compact vehicle cards. */
-
-  .vehicle-header {
-    display: none;
-  }
-
-  .vehicle-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-
-    gap: 1.25rem;
-    padding: 1.25rem;
-  }
-
-  .vehicle-row p {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    min-width: 0;
-  }
-
-  .vehicle-row p::before {
-    content: attr(data-label);
-
-    color: var(--fm-color-muted, #64748b);
-
-    font-size: 0.68rem;
-    font-weight: 700;
-
-    text-transform: uppercase;
-    letter-spacing: 0.03rem;
-  }
-
-  .vehicle-row button {
-    width: fit-content;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   8.3. COMPACT TABLET — 481px TO 767px
-   -------------------------------------------------------------------------- */
-
-@media (min-width: 481px) and (max-width: 767px) {
-  .fleet-manager-dashboard {
-    padding: 1.25rem;
-  }
-
-  .fleet-manager-dashboard h1 {
-    font-size: 1.55rem;
-  }
-
-  .fleet-manager-nav {
-    width: 100%;
-  }
-
-  .fleet-manager-nav button {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .fleet-status-overview {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .add-vehicle-form {
-    grid-template-columns: 1fr;
-
-    width: 100%;
-    max-width: 100%;
-
-    padding: 1.25rem;
-  }
-
-  .add-vehicle-form button {
-    width: 100%;
-  }
-
-  .vehicle-header {
-    display: none;
-  }
-
-  .vehicle-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-
-    gap: 1.25rem;
-    padding: 1.25rem;
-  }
-
-  .vehicle-row p {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-
-    min-width: 0;
-
-    font-size: 0.88rem;
-  }
-
-  .vehicle-row p::before {
-    content: attr(data-label);
-
-    color: var(--fm-color-muted, #64748b);
-
-    font-size: 0.7rem;
-    font-weight: 700;
-
-    text-transform: uppercase;
-    letter-spacing: 0.03rem;
-  }
-
-  .vehicle-row button {
-    width: fit-content;
-  }
-
-  /* Maintenance forms and history fit compact tablet widths. */
-
-  .maintenance-record-list {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   8.4. PHONE — 480px AND BELOW
-   -------------------------------------------------------------------------- */
-
-@media (max-width: 480px) {
-  .fleet-manager-dashboard {
-    width: 100%;
-    max-width: 100%;
-
-    padding: 1rem;
-  }
-
-  .fleet-manager-dashboard h1 {
-    font-size: 1.3rem;
-  }
-
-  /* Stack navigation buttons vertically. */
-
-  .fleet-manager-nav {
-    flex-direction: column;
-
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .fleet-manager-nav button {
-    width: 100%;
-    min-width: 0;
-  }
-
-  /* Stack fleet overview cards. */
-
-  .fleet-status-overview {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-
-  .status-card {
-    width: 100%;
-    padding: 1rem;
-  }
-
-  /* Single-column vehicle registration form. */
-
-  .add-vehicle-form {
-    grid-template-columns: 1fr;
-
-    width: 100%;
-    max-width: 100%;
-
-    padding: 1rem;
-  }
-
-  .add-vehicle-form button {
-    width: 100%;
-    min-width: 0;
-  }
-
-  /* Vehicle list and individual vehicle cards. */
-
-  .vehicle-list {
-    width: 100%;
-    max-width: 100%;
-
-    padding: 0.75rem;
-  }
-
-  .vehicle-header {
-    display: none;
-  }
-
-  .vehicle-row {
-    grid-template-columns: 1fr;
-
-    gap: 1rem;
-
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-
-    padding: 1rem;
-  }
-
-  .vehicle-row p {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-
-    font-size: 0.88rem;
-  }
-
-  .vehicle-row p::before {
-    content: attr(data-label);
-
-    color: var(--fm-color-muted, #64748b);
-
-    font-size: 0.7rem;
-    font-weight: 700;
-
-    text-transform: uppercase;
-    letter-spacing: 0.03rem;
-  }
-
-  .vehicle-row button {
-    width: fit-content;
-    max-width: 100%;
-  }
-
-  /* Assignment modal adapts to narrow screens. */
-
-  .assignment-modal {
-    padding: 1.25rem;
-  }
-
-  .assignment-modal button {
-    margin-right: 0.375rem;
-  }
-
-  /* Maintenance forms and record cards use one column. */
-
-  .maintenance-header {
-    padding: 1.25rem;
-  }
-
-  .maintenance-header h2 {
-    font-size: 1.4rem;
-  }
-
-  .maintenance-panel,
-  .maintenance-history {
-    padding: 1rem;
-  }
-
-  .maintenance-form {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .maintenance-field-full,
-  .maintenance-form > button {
-    grid-column: 1;
-  }
-
-  .maintenance-record-list {
-    grid-template-columns: 1fr;
-  }
-
-  .maintenance-record {
-    padding: 1rem;
+@media (min-width: 30rem) {
+  .maintenance-record-header {
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 
   .maintenance-record-details {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.875rem;
   }
 
   .maintenance-record-actions {
-    align-items: stretch;
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 
   .maintenance-record-actions button {
-    width: 100%;
+    width: auto;
+  }
+}
+
+@media (min-width: 37.5rem) {
+  .maintenance-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem 1.375rem;
+  }
+}
+
+@media (min-width: 48rem) {
+  .maintenance-record-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+/* ==========================================================================
+   9. FUEL AND ENERGY PLANNING
+   ========================================================================== */
+
+.fuel-planning-section {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  padding: clamp(0.875rem, 2.5vw, 1.5rem);
+}
+
+.fuel-planning-header {
+  min-width: 0;
+}
+
+.fuel-planning-header h2,
+.fuel-vehicle-requirements h3 {
+  margin: 0 0 0.5rem;
+
+  font-size: clamp(1.15rem, 2.5vw, 1.4rem);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.fuel-planning-header p,
+.fuel-vehicle-requirements > p {
+  margin: 0;
+
+  color: var(--fm-color-muted);
+
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+/* Planning period and budget form */
+
+.fuel-planning-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+
+  width: 100%;
+  min-width: 0;
+}
+
+.fuel-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  min-width: 0;
+}
+
+/* Budget summary */
+
+.fuel-budget-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.875rem;
+
+  width: 100%;
+  min-width: 0;
+}
+
+.fuel-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+
+  min-width: 0;
+  padding: clamp(0.875rem, 2vw, 1.25rem);
+
+  background-color: var(--fm-color-background);
+
+  border: 1px solid var(--fm-color-border);
+  border-radius: var(--fm-radius-md);
+}
+
+.fuel-summary-card span {
+  color: var(--fm-color-muted);
+
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.fuel-summary-card strong {
+  color: var(--fm-color-heading);
+
+  font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+  font-weight: 700;
+  line-height: 1.3;
+
+  overflow-wrap: anywhere;
+}
+
+/* Vehicle requirements */
+
+.fuel-vehicle-requirements {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  min-width: 0;
+}
+
+.fuel-vehicle-requirements h3 {
+  margin-bottom: 0;
+}
+
+.fuel-vehicle-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+
+  width: 100%;
+  min-width: 0;
+  padding: clamp(0.875rem, 2vw, 1.125rem);
+
+  background-color: var(--fm-color-surface);
+
+  border: 1px solid var(--fm-color-border);
+  border-radius: var(--fm-radius-md);
+
+  transition:
+    border-color var(--fm-transition),
+    box-shadow var(--fm-transition);
+}
+
+.fuel-vehicle-card:focus-within {
+  border-color: var(--fm-color-accent-border);
+  box-shadow: var(--fm-shadow-sm);
+}
+
+.fuel-vehicle-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+
+  gap: 0.5rem 0.75rem;
+
+  min-width: 0;
+}
+
+.fuel-vehicle-heading label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+
+  min-width: 0;
+
+  color: var(--fm-color-heading);
+
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.5;
+
+  overflow-wrap: anywhere;
+}
+
+.fuel-vehicle-heading input[type="checkbox"] {
+  flex: 0 0 auto;
+
+  width: 1.125rem;
+  height: 1.125rem;
+
+  margin-top: 0.15rem;
+
+  accent-color: var(--fm-color-accent);
+  cursor: pointer;
+}
+
+.fuel-vehicle-heading span {
+  max-width: 100%;
+
+  padding: 0.3125rem 0.625rem;
+
+  color: var(--fm-color-text);
+  background-color: var(--fm-color-background);
+
+  border: 1px solid var(--fm-color-border);
+  border-radius: var(--fm-radius-sm);
+
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-transform: capitalize;
+
+  overflow-wrap: anywhere;
+}
+
+.fuel-vehicle-card > p {
+  margin: 0;
+
+  color: var(--fm-color-muted);
+
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.fuel-vehicle-inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.875rem;
+
+  width: 100%;
+  min-width: 0;
+}
+
+.fuel-vehicle-estimate {
+  min-width: 0;
+  padding-top: 0.875rem;
+
+  color: var(--fm-color-text);
+
+  border-top: 1px solid var(--fm-color-border);
+
+  font-size: 0.875rem;
+  line-height: 1.6;
+
+  overflow-wrap: anywhere;
+}
+
+.fuel-vehicle-estimate strong {
+  color: var(--fm-color-heading);
+  font-weight: 700;
+}
+
+.fuel-planning-message {
+  margin: 0;
+
+  color: var(--fm-color-accent-hover);
+
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.fuel-planning-note {
+  margin: 0;
+  padding: 0.75rem 0.875rem;
+
+  color: var(--fm-color-muted);
+  background-color: var(--fm-color-background);
+
+  border: 1px solid var(--fm-color-border);
+  border-radius: var(--fm-radius-md);
+
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+@media (min-width: 37.5rem) {
+  .fuel-planning-form,
+  .fuel-vehicle-inputs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+@media (min-width: 40rem) {
+  .fuel-budget-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+/* ==========================================================================
+   10. ACCESSIBILITY AND USER-PREFERENCE OVERRIDES
+   ========================================================================== */
+
+/* iOS Safari zooms the page when a focused input is under 16px */
+@media (hover: none) and (pointer: coarse) {
+  .fleet-manager-dashboard :is(input, select, textarea) {
+    font-size: 1rem !important;
+  }
+}
+
+/* Windows High Contrast / forced colors: keep the active tab distinguishable */
+@media (forced-colors: active) {
+  .fleet-manager-nav
+    button:is(.active, [aria-current="page"], [aria-selected="true"]) {
+    border-color: Highlight;
+    forced-color-adjust: none;
+    color: HighlightText;
+    background-color: Highlight;
+  }
+
+  .fleet-manager-nav {
+    background-image: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fleet-manager-dashboard *,
+  .fleet-manager-dashboard *::before,
+  .fleet-manager-dashboard *::after,
+  .assignment-modal-overlay,
+  .assignment-modal {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

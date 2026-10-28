@@ -25,6 +25,130 @@ function FleetManager() {
   const [maintenanceDate, setMaintenanceDate] = useState("");
   const [maintenanceOdometer, setMaintenanceOdometer] = useState("");
   const [maintenanceCost, setMaintenanceCost] = useState("");
+  // Fuel budget draft
+  const [fuelBudgetMonth, setFuelBudgetMonth] = useState(function () {
+    const now = new Date();
+
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+      2,
+      "0",
+    )}`;
+  });
+
+  const [fuelJustification, setFuelJustification] = useState("");
+  const [fuelEntries, setFuelEntries] = useState({});
+  const [fuelIncluded, setFuelIncluded] = useState({});
+  const [fuelMessage, setFuelMessage] = useState("");
+  const [fuelEnergyTypes, setFuelEnergyTypes] = useState({});
+
+  function handleFuelEntryChange(vehicleId, field, value) {
+    setFuelEntries(function (currentEntries) {
+      return {
+        ...currentEntries,
+        [vehicleId]: {
+          ...currentEntries[vehicleId],
+          [field]: value,
+        },
+      };
+    });
+
+    setFuelMessage("");
+  }
+  const fuelBudgetSummary = vehicles.reduce(
+    function (summary, vehicle) {
+      const vehicleId = vehicle.vehicle_id;
+
+      const isIncluded =
+        fuelIncluded[vehicleId] ??
+        (vehicle.status !== "out of service" &&
+          vehicle.status !== "maintenance");
+
+      if (!isIncluded) {
+        return summary;
+      }
+
+      const entry = fuelEntries[vehicleId] || {};
+      const energyType = fuelEnergyTypes[vehicleId] || "diesel";
+
+      const requestedLitres = Number(entry.requestedLitres) || 0;
+      const pricePerLitre = Number(entry.pricePerLitre) || 0;
+
+      const requestedKwh = Number(entry.requestedKwh) || 0;
+      const pricePerKwh = Number(entry.pricePerKwh) || 0;
+
+      let petrolLitres = 0;
+      let dieselLitres = 0;
+      let hybridLitres = 0;
+      let electricKwh = 0;
+      let hybridKwh = 0;
+
+      let petrolCost = 0;
+      let dieselCost = 0;
+      let electricCost = 0;
+      let hybridFuelCost = 0;
+      let hybridElectricCost = 0;
+
+      if (energyType === "petrol") {
+        petrolLitres = requestedLitres;
+        petrolCost = requestedLitres * pricePerLitre;
+      } else if (energyType === "diesel") {
+        dieselLitres = requestedLitres;
+        dieselCost = requestedLitres * pricePerLitre;
+      } else if (energyType === "electric") {
+        electricKwh = requestedKwh;
+        electricCost = requestedKwh * pricePerKwh;
+      } else if (energyType === "hybrid") {
+        hybridLitres = requestedLitres;
+        hybridKwh = requestedKwh;
+
+        hybridFuelCost = requestedLitres * pricePerLitre;
+        hybridElectricCost = requestedKwh * pricePerKwh;
+      }
+
+      return {
+        vehicleCount: summary.vehicleCount + 1,
+
+        petrolLitres: summary.petrolLitres + petrolLitres,
+        dieselLitres: summary.dieselLitres + dieselLitres,
+        hybridLitres: summary.hybridLitres + hybridLitres,
+
+        electricKwh: summary.electricKwh + electricKwh,
+        hybridKwh: summary.hybridKwh + hybridKwh,
+
+        petrolCost: summary.petrolCost + petrolCost,
+        dieselCost: summary.dieselCost + dieselCost,
+        electricCost: summary.electricCost + electricCost,
+        hybridFuelCost: summary.hybridFuelCost + hybridFuelCost,
+        hybridElectricCost: summary.hybridElectricCost + hybridElectricCost,
+
+        totalCost:
+          summary.totalCost +
+          petrolCost +
+          dieselCost +
+          electricCost +
+          hybridFuelCost +
+          hybridElectricCost,
+      };
+    },
+    {
+      vehicleCount: 0,
+
+      petrolLitres: 0,
+      dieselLitres: 0,
+      hybridLitres: 0,
+
+      electricKwh: 0,
+      hybridKwh: 0,
+
+      petrolCost: 0,
+      dieselCost: 0,
+      electricCost: 0,
+      hybridFuelCost: 0,
+      hybridElectricCost: 0,
+
+      totalCost: 0,
+    },
+  );
 
   useEffect(function () {
     fetch("http://localhost:3000/vehicles")
@@ -404,6 +528,13 @@ function FleetManager() {
             onClick={() => setFleetView("maintenance")}
           >
             Maintenance
+          </button>
+
+          <button
+            className={fleetView === "fuel-planning" ? "active" : ""}
+            onClick={() => setFleetView("fuel-planning")}
+          >
+            Fuel Planning
           </button>
         </div>
         {fleetView === "overview" && (
@@ -833,6 +964,347 @@ function FleetManager() {
                 </div>
               )}
             </div>
+          </section>
+        )}
+
+        {fleetView === "fuel-planning" && (
+          <section className="fuel-planning-section">
+            <div className="fuel-planning-header">
+              <h2>Monthly Fuel Planning</h2>
+              <p>
+                Prepare and review your fleet's monthly fuel requirements before
+                submitting a proposal to Finance.
+              </p>
+            </div>
+
+            <div className="fuel-planning-form">
+              <div className="fuel-form-group">
+                <label htmlFor="fuel-budget-month">Budget Month</label>
+
+                <input
+                  id="fuel-budget-month"
+                  type="month"
+                  value={fuelBudgetMonth}
+                  onChange={(event) => setFuelBudgetMonth(event.target.value)}
+                />
+              </div>
+
+              <div className="fuel-form-group">
+                <label htmlFor="fuel-justification">
+                  Operational Justification
+                </label>
+
+                <textarea
+                  id="fuel-justification"
+                  value={fuelJustification}
+                  onChange={(event) => setFuelJustification(event.target.value)}
+                  placeholder="Explain the operational needs behind this month's fuel request..."
+                  rows={4}
+                />
+              </div>
+            </div>
+
+            <div className="fuel-budget-summary">
+              <div className="fuel-summary-card">
+                <span>Vehicles Included</span>
+                <strong>{fuelBudgetSummary.vehicleCount}</strong>
+              </div>
+
+              {fuelBudgetSummary.petrolLitres > 0 && (
+                <div className="fuel-summary-card">
+                  <span>Petrol Budget</span>
+                  <strong>
+                    {fuelBudgetSummary.petrolCost.toLocaleString("en-RW")} RWF
+                  </strong>
+                  <small>
+                    {fuelBudgetSummary.petrolLitres.toLocaleString("en-RW")} L
+                    required
+                  </small>
+                </div>
+              )}
+
+              {fuelBudgetSummary.dieselLitres > 0 && (
+                <div className="fuel-summary-card">
+                  <span>Diesel Budget</span>
+                  <strong>
+                    {fuelBudgetSummary.dieselCost.toLocaleString("en-RW")} RWF
+                  </strong>
+                  <small>
+                    {fuelBudgetSummary.dieselLitres.toLocaleString("en-RW")} L
+                    required
+                  </small>
+                </div>
+              )}
+
+              {fuelBudgetSummary.electricKwh > 0 && (
+                <div className="fuel-summary-card">
+                  <span>Electricity Budget</span>
+                  <strong>
+                    {fuelBudgetSummary.electricCost.toLocaleString("en-RW")} RWF
+                  </strong>
+                  <small>
+                    {fuelBudgetSummary.electricKwh.toLocaleString("en-RW")} kWh
+                    required
+                  </small>
+                </div>
+              )}
+
+              {(fuelBudgetSummary.hybridLitres > 0 ||
+                fuelBudgetSummary.hybridKwh > 0) && (
+                <div className="fuel-summary-card">
+                  <span>Hybrid Budget</span>
+                  <strong>
+                    {(
+                      fuelBudgetSummary.hybridFuelCost +
+                      fuelBudgetSummary.hybridElectricCost
+                    ).toLocaleString("en-RW")}{" "}
+                    RWF
+                  </strong>
+                  <small>
+                    {fuelBudgetSummary.hybridLitres.toLocaleString("en-RW")} L
+                    fuel
+                    {" · "}
+                    {fuelBudgetSummary.hybridKwh.toLocaleString("en-RW")} kWh
+                    electricity
+                  </small>
+                </div>
+              )}
+
+              <div className="fuel-summary-card fuel-summary-total">
+                <span>Total Estimated Budget</span>
+                <strong>
+                  {fuelBudgetSummary.totalCost.toLocaleString("en-RW")} RWF
+                </strong>
+              </div>
+            </div>
+
+            <div className="fuel-vehicle-requirements">
+              <h3>Vehicle Fuel Requirements</h3>
+              <p>
+                Select the vehicles to include and enter the estimated monthly
+                fuel requirements for each.
+              </p>
+
+              {vehicles.length === 0 ? (
+                <p>
+                  No vehicles are available. Add vehicles before preparing a
+                  fuel plan.
+                </p>
+              ) : (
+                vehicles.map((vehicle) => {
+                  const entry = fuelEntries[vehicle.vehicle_id] || {};
+
+                  const included =
+                    fuelIncluded[vehicle.vehicle_id] ??
+                    (vehicle.status !== "out of service" &&
+                      vehicle.status !== "maintenance");
+
+                  const energyType =
+                    fuelEnergyTypes[vehicle.vehicle_id] || "diesel";
+
+                  const fuelCost =
+                    (Number(entry.requestedLitres) || 0) *
+                    (Number(entry.pricePerLitre) || 0);
+
+                  const electricCost =
+                    (Number(entry.requestedKwh) || 0) *
+                    (Number(entry.pricePerKwh) || 0);
+
+                  const estimatedCost =
+                    energyType === "electric"
+                      ? electricCost
+                      : energyType === "hybrid"
+                        ? fuelCost + electricCost
+                        : fuelCost;
+
+                  return (
+                    <div className="fuel-vehicle-card" key={vehicle.vehicle_id}>
+                      <div className="fuel-vehicle-heading">
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={included}
+                            onChange={(event) => {
+                              setFuelIncluded((current) => ({
+                                ...current,
+                                [vehicle.vehicle_id]: event.target.checked,
+                              }));
+                              setFuelMessage("");
+                            }}
+                          />
+                          <strong>{vehicle.plate_number}</strong>
+                        </label>
+
+                        <span>{vehicle.status}</span>
+                      </div>
+
+                      <p>
+                        {vehicle.make} {vehicle.model}
+                      </p>
+
+                      <div className="fuel-form-group">
+                        <label htmlFor={`energy-type-${vehicle.vehicle_id}`}>
+                          Energy Type
+                        </label>
+
+                        <select
+                          id={`energy-type-${vehicle.vehicle_id}`}
+                          value={
+                            fuelEnergyTypes[vehicle.vehicle_id] || "diesel"
+                          }
+                          disabled={!included}
+                          onChange={(event) => {
+                            setFuelEnergyTypes((current) => ({
+                              ...current,
+                              [vehicle.vehicle_id]: event.target.value,
+                            }));
+
+                            setFuelMessage("");
+                          }}
+                        >
+                          <option value="petrol">Petrol</option>
+                          <option value="diesel">Diesel</option>
+                          <option value="electric">Electric</option>
+                          <option value="hybrid">Hybrid</option>
+                        </select>
+                      </div>
+
+                      <div className="fuel-vehicle-inputs">
+                        {(energyType === "petrol" ||
+                          energyType === "diesel" ||
+                          energyType === "hybrid") && (
+                          <>
+                            <div className="fuel-form-group">
+                              <label
+                                htmlFor={`fuel-litres-${vehicle.vehicle_id}`}
+                              >
+                                Requested Litres
+                              </label>
+
+                              <input
+                                id={`fuel-litres-${vehicle.vehicle_id}`}
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={entry.requestedLitres ?? ""}
+                                disabled={!included}
+                                onChange={(event) =>
+                                  handleFuelEntryChange(
+                                    vehicle.vehicle_id,
+                                    "requestedLitres",
+                                    event.target.value,
+                                  )
+                                }
+                                placeholder="e.g. 80"
+                              />
+                            </div>
+
+                            <div className="fuel-form-group">
+                              <label
+                                htmlFor={`fuel-price-${vehicle.vehicle_id}`}
+                              >
+                                Estimated Price per Litre (RWF)
+                              </label>
+
+                              <input
+                                id={`fuel-price-${vehicle.vehicle_id}`}
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={entry.pricePerLitre ?? ""}
+                                disabled={!included}
+                                onChange={(event) =>
+                                  handleFuelEntryChange(
+                                    vehicle.vehicle_id,
+                                    "pricePerLitre",
+                                    event.target.value,
+                                  )
+                                }
+                                placeholder="e.g. 1800"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {(energyType === "electric" ||
+                          energyType === "hybrid") && (
+                          <>
+                            <div className="fuel-form-group">
+                              <label htmlFor={`fuel-kwh-${vehicle.vehicle_id}`}>
+                                Requested Electricity (kWh)
+                              </label>
+
+                              <input
+                                id={`fuel-kwh-${vehicle.vehicle_id}`}
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={entry.requestedKwh ?? ""}
+                                disabled={!included}
+                                onChange={(event) =>
+                                  handleFuelEntryChange(
+                                    vehicle.vehicle_id,
+                                    "requestedKwh",
+                                    event.target.value,
+                                  )
+                                }
+                                placeholder="e.g. 150"
+                              />
+                            </div>
+
+                            <div className="fuel-form-group">
+                              <label
+                                htmlFor={`fuel-kwh-price-${vehicle.vehicle_id}`}
+                              >
+                                Estimated Price per kWh (RWF)
+                              </label>
+
+                              <input
+                                id={`fuel-kwh-price-${vehicle.vehicle_id}`}
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={entry.pricePerKwh ?? ""}
+                                disabled={!included}
+                                onChange={(event) =>
+                                  handleFuelEntryChange(
+                                    vehicle.vehicle_id,
+                                    "pricePerKwh",
+                                    event.target.value,
+                                  )
+                                }
+                                placeholder="e.g. 250"
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="fuel-vehicle-estimate">
+                        Estimated cost:{" "}
+                        <strong>
+                          {(included ? estimatedCost : 0).toLocaleString(
+                            "en-RW",
+                          )}{" "}
+                          RWF
+                        </strong>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {fuelMessage && (
+              <p className="fuel-planning-message" role="status">
+                {fuelMessage}
+              </p>
+            )}
+
+            <p className="fuel-planning-note">
+              This is a local draft. It has not been submitted to Finance or
+              saved to the server.
+            </p>
           </section>
         )}
       </div>
