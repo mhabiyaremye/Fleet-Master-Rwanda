@@ -2,6 +2,10 @@ const express = require("express");
 const router = express.Router();
 const pool = require("./database.js");
 
+const { authenticateUser, authorizeRoles } = require("./auth-middleware.js");
+
+router.use(authenticateUser, authorizeRoles("Fleet Manager"));
+
 router.post("/", async function (req, res) {
   const { plate_number, make, model, year, current_odometer } = req.body;
   const currentYear = new Date().getFullYear();
@@ -96,6 +100,7 @@ router.get("/approved-employees", async function (req, res) {
       `SELECT employee_id, firstname, lastname
        FROM users
        WHERE status = 'approved'
+         AND role = 'Driver'
        ORDER BY firstname ASC`,
     );
 
@@ -114,12 +119,21 @@ router.get("/approved-employees", async function (req, res) {
 });
 router.patch("/:vehicle_id/assign", async function (req, res) {
   try {
-    const vehicleId = req.params.vehicle_id;
-    const employeeId = req.body.employee_id;
-    if (!employeeId) {
-      return res.status(409).json({
+    const vehicleId = Number(req.params.vehicle_id);
+    const employeeId = req.body && req.body.employee_id;
+    const numericEmployeeId = Number(employeeId);
+
+    if (!Number.isInteger(vehicleId) || vehicleId <= 0) {
+      return res.status(400).json({
         success: false,
-        message: "Driver id required",
+        message: "A valid vehicle id is required.",
+      });
+    }
+
+    if (!Number.isInteger(numericEmployeeId) || numericEmployeeId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid driver id is required.",
       });
     }
 
@@ -151,14 +165,31 @@ router.patch("/:vehicle_id/assign", async function (req, res) {
       });
     }
     const driverResult = await pool.query(
-      `select assigned_driver_id from vehicles where assigned_driver_id = $1`,
-      [employeeId],
+      `SELECT employee_id
+       FROM users
+       WHERE employee_id = $1
+         AND role = 'Driver'
+         AND status = 'approved'`,
+      [numericEmployeeId],
     );
-    if (driverResult.rows.length > 0) {
+    if (driverResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "The selected employee is not an approved driver.",
+      });
+    }
+
+    const assignmentResult = await pool.query(
+      `SELECT vehicle_id
+       FROM vehicles
+       WHERE assigned_driver_id = $1`,
+      [numericEmployeeId],
+    );
+    if (assignmentResult.rows.length > 0) {
       return res.status(409).json({
         success: false,
         message: "Driver already assigned",
-        driver: employeeId,
+        driver: numericEmployeeId,
       });
     }
 
@@ -170,9 +201,26 @@ router.patch("/:vehicle_id/assign", async function (req, res) {
    FROM users
    WHERE vehicles.vehicle_id = $2
      AND users.employee_id = $1
+     AND users.role = 'Driver'
+     AND users.status = 'approved'
+     AND vehicles.assigned_driver_id IS NULL
+     AND vehicles.status NOT IN ('maintenance', 'out of service')
+     AND NOT EXISTS (
+       SELECT 1
+       FROM vehicles AS assigned_vehicle
+       WHERE assigned_vehicle.assigned_driver_id = users.employee_id
+     )
    RETURNING vehicles.*, users.firstname, users.lastname`,
-      [employeeId, vehicleId],
+      [numericEmployeeId, vehicleId],
     );
+
+    if (result.rows.length === 0) {
+      return res.status(409).json({
+        success: false,
+        message: "The vehicle or driver is no longer available for assignment.",
+      });
+    }
+
     return res.status(200).json({
       success: true,
       message: "Vehicle assigned successfully",
