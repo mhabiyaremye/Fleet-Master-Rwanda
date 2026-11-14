@@ -1,3 +1,4 @@
+const { randomUUID } = require("node:crypto");
 const { loadEnvFile } = require("node:process");
 const express = require("express");
 const cors = require("cors");
@@ -16,94 +17,107 @@ app.use("/vehicles", vehicleRoutes);
 app.use("/vehicles", maintenanceRoutes);
 app.use("/fuel-planning", fuelPlanningRoutes);
 
-app.post("/login", function (req, res) {
-  let email = req.body.email;
-  let password = req.body.password;
-  /* The following section checks whether the credentials have been
-   passed to the front-end */
+app.post("/login", async function (req, res) {
+  const email = req.body.email;
+  const password = req.body.password;
 
   if (!email) {
-    res.json({
+    return res.json({
       success: false,
       message: "Provide Email",
     });
-    return;
   }
+
   if (!password) {
-    res.json({
+    return res.json({
       success: false,
-      message: "Provide password ",
+      message: "Provide password",
     });
-    return;
   }
 
-  // After checking that they are values passed to the front-end
-  // the following code validates the user whether they exist or not
-  // by validating their email and
-  // checking their passwords
+  try {
+    // 1. Find the user
+    const result = await pool.query("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
 
-  pool
-    .query("select *from users where email = $1", [email])
-    .then(function (result) {
-      if (result.rows.length === 0) {
-        res.json({
-          success: false,
-          message: "user does not exist",
-        });
-        return;
-      }
-      bcrypt
-        .compare(password, result.rows[0].password)
-        .then(function (passwordmatches) {
-          if (!passwordmatches) {
-            res.json({
-              success: false,
-              message: "Incorrect password",
-            });
-            return;
-          }
-          let blockedUsers = ["rejected", "deactivated"];
-          if (result.rows[0].status === "pending") {
-            res.json({
-              success: false,
-              message: "Account not approved",
-            });
-            return;
-          }
-          if (blockedUsers.includes(result.rows[0].status)) {
-            res.json({
-              success: false,
-              message: "Account might have been rejected or blocked",
-            });
-            return;
-          }
+    if (result.rows.length === 0) {
+      return res.json({
+        success: false,
+        message: "User does not exist",
+      });
+    }
 
-          if (result.rows[0].status === "approved") {
-            let token = jwt.sign(
-              { userId: result.rows[0].id, role: result.rows[0].role },
-              process.env.JWT_SECRET,
-              {
-                expiresIn: "1h",
-              },
-            );
-            console.log("LOGIN ROLE:", result.rows[0].role);
-            res.json({
-              success: true,
-              message: "Log in successful",
-              token: token,
-              role: result.rows[0].role,
-            });
-            return;
-          }
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    })
-    .catch(function (error) {
-      console.log(error);
+    const user = result.rows[0];
+
+    // 2. Verify the password
+    const passwordMatches = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatches) {
+      return res.json({
+        success: false,
+        message: "Incorrect password",
+      });
+    }
+
+    // 3. Check account status
+    if (user.status !== "approved") {
+      return res.json({
+        success: false,
+        message:
+          user.status === "pending"
+            ? "Account not approved"
+            : "Account is not authorized",
+      });
+    }
+
+    // 4. Generate a unique session ID
+    const sessionId = randomUUID();
+
+    // 5. Set the maximum session lifetime to 8 hours
+    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
+
+    // 6. Register the session in PostgreSQL
+    await pool.query(
+      `INSERT INTO public.user_sessions (
+        id,
+        user_id,
+        expires_at,
+        device_info
+      )
+      VALUES ($1, $2, $3, $4)`,
+      [sessionId, user.id, expiresAt, req.get("user-agent") || null],
+    );
+
+    // 7. Create JWT containing the session ID
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        sid: sessionId,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "8h",
+      },
+    );
+
+    // 8. Return login information
+    return res.json({
+      success: true,
+      message: "Log in successful",
+      token: token,
+      role: user.role,
     });
+  } catch (error) {
+    console.error("Login failed:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to complete login",
+    });
+  }
 });
+
 app.post("/register", function (req, res) {
   let firstname = req.body.firstname;
   let lastname = req.body.lastname;
@@ -299,10 +313,9 @@ app.post("/setupadmin", async function (req, res) {
 
     // Serialize bootstrap attempts so concurrent requests cannot both pass
     // the initial-admin check and create separate administrator accounts.
-    await client.query(
-      "SELECT pg_advisory_xact_lock(hashtext($1))",
-      ["fleet_master_rwanda_admin_setup"],
-    );
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
+      "fleet_master_rwanda_admin_setup",
+    ]);
 
     const adminResult = await client.query(
       "SELECT 1 FROM users WHERE role = $1 LIMIT 1",
