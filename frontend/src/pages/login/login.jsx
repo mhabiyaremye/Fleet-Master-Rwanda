@@ -25,8 +25,7 @@ function Login() {
           return;
         }
         sessionStorage.setItem("token", data.token);
-        console.log(data);
-        console.log("ROLE:", data.role);
+        sessionStorage.setItem("role", data.role);
         setMessage(data.message);
         if (data.role === "admin") {
           navigate("/admin");
