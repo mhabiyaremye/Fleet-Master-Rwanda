@@ -670,13 +670,11 @@ function FleetManager() {
       }
 
       const updatedVehicle = {
-        ...vehicle,
-        ...(data.vehicle || {}),
-        assigned_driver_id: null,
-        status: "available",
-        firstname: null,
-        lastname: null,
-      };
+  ...vehicle,
+  ...data.vehicle,
+  firstname: null,
+  lastname: null,
+};
 
       setVehicles(function (currentVehicles) {
         return currentVehicles.map(function (currentVehicle) {
