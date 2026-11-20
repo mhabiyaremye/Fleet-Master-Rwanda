@@ -1,21 +1,43 @@
+
 const { randomUUID } = require("node:crypto");
 const { loadEnvFile } = require("node:process");
+const path = require("node:path");
+
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
-const app = express();
-loadEnvFile("../.env");
+const jwt = require("jsonwebtoken");
+
+// Load environment variables BEFORE importing database modules.
+loadEnvFile(path.join(__dirname, "../.env"));
+
+// Database connection.
 const pool = require("./database");
+
+// Backend routes.
 const vehicleRoutes = require("./vehicle-routes");
 const maintenanceRoutes = require("./maintenance-routes");
 const fuelPlanningRoutes = require("./fuel-planning-routes");
-const jwt = require("jsonwebtoken");
-const { authenticateUser, authorizeRoles } = require("./auth-middleware.js");
+
+// Authentication middleware.
+const {
+  authenticateUser,
+  authorizeRoles,
+} = require("./auth-middleware.js");
+
+// Initialize Express.
+const app = express();
+
+// Global middleware.
 app.use(cors());
 app.use(express.json());
+
+// Register routes.
 app.use("/vehicles", vehicleRoutes);
 app.use("/vehicles", maintenanceRoutes);
 app.use("/fuel-planning", fuelPlanningRoutes);
+
+
 
 app.post("/login", async function (req, res) {
   const email = req.body.email;

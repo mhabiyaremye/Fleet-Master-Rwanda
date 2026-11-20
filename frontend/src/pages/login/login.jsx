@@ -8,7 +8,7 @@ function Login() {
   const navigate = useNavigate();
   function handleLogin(event) {
     event.preventDefault();
-    fetch("http://localhost:3000/login", {
+    fetch("/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
