@@ -640,64 +640,124 @@ app.patch("/rejected", authenticateUser, authorizeAdmin, function (req, res) {
       });
     });
 });
+
 app.patch(
   "/deactivated",
   authenticateUser,
   authorizeAdmin,
-  function (req, res) {
-    let employeeId = req.body.employeeId;
+  async function (req, res) {
+    const employeeId = req.body.employeeId;
+
     if (!employeeId) {
-      res.json({
+      return res.status(400).json({
         success: false,
         message: "Provide Employee Id",
       });
-      return;
     }
-    pool
-      .query("select *from users where employee_id = $1", [employeeId])
-      .then(function (result) {
-        if (result.rows.length === 0) {
-          res.json({
-            success: false,
-            message: "User not found",
-          });
-          return;
-        }
-        if (result.rows[0].status !== "approved") {
-          res.json({
-            success: false,
-            message: "User is not approved",
-          });
-          return;
-        }
-        pool
-          .query(`update users set status = $1 where employee_id =$2`, [
-            "deactivated",
-            employeeId,
-          ])
-          .then(function () {
-            res.json({
-              success: true,
-              message: "User deactivated",
-            });
-          })
-          .catch(function (error) {
-            console.log("Database error");
-            res.json({
-              success: false,
-              message: "Database error",
-            });
-          });
-      })
-      .catch(function (error) {
-        console.log("Database error", error);
-        res.json({
+
+    let client;
+
+    try {
+      client = await pool.connect();
+
+      await client.query("BEGIN");
+
+      // Lock the target user while checking and updating their account.
+      const userResult = await client.query(
+        `SELECT id, status, role
+         FROM users
+         WHERE employee_id = $1
+         FOR UPDATE`,
+        [employeeId],
+      );
+
+      if (userResult.rows.length === 0) {
+        await client.query("ROLLBACK");
+
+        return res.status(404).json({
           success: false,
-          message: "Database error",
+          message: "User not found",
         });
+      }
+
+      const targetUser = userResult.rows[0];
+
+      // Prevent an administrator from deactivating their own account.
+      if (Number(targetUser.id) === Number(req.user.userId)) {
+        await client.query("ROLLBACK");
+
+        return res.status(403).json({
+          success: false,
+          message: "You cannot deactivate your own account",
+        });
+      }
+
+      // Protect administrator accounts from this operation.
+      if (targetUser.role === "admin") {
+        await client.query("ROLLBACK");
+
+        return res.status(403).json({
+          success: false,
+          message: "Administrator accounts cannot be deactivated here",
+        });
+      }
+
+      if (targetUser.status !== "approved") {
+        await client.query("ROLLBACK");
+
+        return res.status(409).json({
+          success: false,
+          message: "User is not approved",
+        });
+      }
+
+      // Deactivate the account.
+      await client.query(
+        `UPDATE users
+         SET status = $1
+         WHERE id = $2`,
+        ["deactivated", targetUser.id],
+      );
+
+      // Revoke every session that has not already been revoked.
+      await client.query(
+        `UPDATE public.user_sessions
+         SET revoked_at = NOW(),
+             revocation_reason = $1
+         WHERE user_id = $2
+         AND revoked_at IS NULL`,
+        ["account_deactivated", targetUser.id],
+      );
+
+      await client.query("COMMIT");
+
+      return res.status(200).json({
+        success: true,
+        message: "User deactivated and active sessions revoked",
       });
+    } catch (error) {
+      if (client) {
+        try {
+          await client.query("ROLLBACK");
+        } catch (rollbackError) {
+          console.error("Deactivation rollback failed:", rollbackError);
+        }
+      }
+
+      console.error("Account deactivation failed:", error.message);
+
+      return res.status(500).json({
+        success: false,
+        message: "Unable to deactivate user",
+      });
+    } finally {
+      if (client) {
+        client.release();
+      }
+    }
   },
 );
+
 app.patch("/reactivate", authenticateUser, authorizeAdmin, function (req, res) {
   let employeeId = req.body.employeeId;
   console.log(req.body);

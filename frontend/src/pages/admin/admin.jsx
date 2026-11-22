@@ -231,7 +231,7 @@ function AdminDashboard() {
   return (
     <div className="admin-dashboard">
       <header className="admin-header">
-        <h1>Fleet Master Ops</h1>
+        <h1>FMR</h1>
         <p>Admin Dashboard</p>
       </header>
       <div className="admin-lay-out">
@@ -298,7 +298,9 @@ function AdminDashboard() {
                         });
                       }}
                     >
-                      <option>Select Role</option>
+                      <option value="" disabled>
+                        Select Role
+                      </option>
                       <option>Driver</option>
                       <option>Fleet Manager</option>
                       <option>Finance Manager</option>
