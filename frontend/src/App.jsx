@@ -1,5 +1,5 @@
 import "./App.css";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/login/login";
 import CreateAccount from "./pages/create-account/create-account";
 import AdminDashboard from "./pages/admin/admin";
@@ -21,6 +21,7 @@ function App() {
       <Route element={<ProtectedRoute allowedRoles={["Fleet Manager"]} />}>
         <Route path="/fleet-manager" element={<FleetManager />} />
       </Route>
+      <Route path="/" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

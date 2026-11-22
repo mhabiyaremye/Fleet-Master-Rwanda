@@ -28,6 +28,8 @@ function FleetManager() {
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [assignmentSuccess, setAssignmentSuccess] = useState(false);
   const [assignmentMessage, setAssignmentMessage] = useState("");
+  const [unassigningVehicleId, setUnassigningVehicleId] = useState(null);
+  const [unassignMessage, setUnassignMessage] = useState("");
 
   // Vehicle details dialog state
   const [vehicleDetails, setVehicleDetails] = useState(null);
@@ -146,7 +148,7 @@ function FleetManager() {
     setFuelSaving(true);
 
     try {
-      const response = await fetch("http://localhost:3000/fuel-planning", {
+      const response = await fetch("/fuel-planning", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -193,7 +195,7 @@ function FleetManager() {
         return;
       }
 
-      const response = await fetch("http://localhost:3000/fuel-planning", {
+      const response = await fetch("/fuel-planning", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -332,7 +334,7 @@ function FleetManager() {
       return;
     }
 
-    fetch("http://localhost:3000/vehicles", {
+    fetch("/vehicles", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -356,6 +358,18 @@ function FleetManager() {
         setVehicleLoadMessage("Unable to load vehicles. Please try again.");
       });
   }, []);
+  // Automatically dismiss successful unassignment messages
+  useEffect(() => {
+    if (unassignMessage !== "Driver unassigned successfully.") {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setUnassignMessage("");
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, [unassignMessage]);
 
   useEffect(
     function () {
@@ -449,7 +463,7 @@ function FleetManager() {
       return;
     }
 
-    fetch("http://localhost:3000/vehicles", {
+    fetch("/vehicles", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -510,6 +524,7 @@ function FleetManager() {
   // =========================================================
 
   function handleViewVehicle(vehicle) {
+    setUnassignMessage("");
     setVehicleDetails(vehicle);
   }
 
@@ -544,7 +559,7 @@ function FleetManager() {
     }
 
     // Load employees who are approved for assignment.
-    fetch("http://localhost:3000/vehicles/approved-employees", {
+    fetch("/vehicles/approved-employees", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -581,19 +596,16 @@ function FleetManager() {
       return;
     }
 
-    fetch(
-      `http://localhost:3000/vehicles/${selectedVehicle.vehicle_id}/assign`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          employee_id: selectedEmployee,
-        }),
+    fetch(`/vehicles/${selectedVehicle.vehicle_id}/assign`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-    )
+      body: JSON.stringify({
+        employee_id: selectedEmployee,
+      }),
+    })
       .then(function (response) {
         return response.json();
       })
@@ -628,6 +640,60 @@ function FleetManager() {
       });
   }
 
+  async function handleUnassignVehicle(vehicle) {
+    if (unassigningVehicleId !== null) return;
+
+    setUnassignMessage("");
+
+    const token = sessionStorage.getItem("token");
+
+    if (!token) {
+      setUnassignMessage("Session expired. Please log in again.");
+      return;
+    }
+
+    setUnassigningVehicleId(vehicle.vehicle_id);
+
+    try {
+      const response = await fetch(`/vehicles/${vehicle.vehicle_id}/unassign`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.success === false) {
+        setUnassignMessage(data.message || "Unable to unassign vehicle.");
+        return;
+      }
+
+      const updatedVehicle = {
+  ...vehicle,
+  ...data.vehicle,
+  firstname: null,
+  lastname: null,
+};
+
+      setVehicles(function (currentVehicles) {
+        return currentVehicles.map(function (currentVehicle) {
+          return currentVehicle.vehicle_id === vehicle.vehicle_id
+            ? updatedVehicle
+            : currentVehicle;
+        });
+      });
+
+      setVehicleDetails(updatedVehicle);
+      setUnassignMessage("Driver unassigned successfully.");
+    } catch (error) {
+      console.error("Vehicle unassignment failed:", error);
+      setUnassignMessage("Unable to connect to the backend.");
+    } finally {
+      setUnassigningVehicleId(null);
+    }
+  }
+
   // =========================================================
   // MAINTENANCE FUNCTIONS
   // =========================================================
@@ -640,7 +706,7 @@ function FleetManager() {
 
     const token = sessionStorage.getItem("token");
 
-    fetch(`http://localhost:3000/vehicles/${vehicleId}/maintenance`, {
+    fetch(`/vehicles/${vehicleId}/maintenance`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -683,23 +749,20 @@ function FleetManager() {
 
     const token = sessionStorage.getItem("token");
 
-    fetch(
-      `http://localhost:3000/vehicles/${maintenanceVehicleId}/maintenance`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          maintenance_type: maintenanceType,
-          description: maintenanceDescription,
-          maintenance_date: maintenanceDate,
-          odometer_reading: Number(maintenanceOdometer),
-          cost: maintenanceCost === "" ? 0 : Number(maintenanceCost),
-        }),
+    fetch(`/vehicles/${maintenanceVehicleId}/maintenance`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-    )
+      body: JSON.stringify({
+        maintenance_type: maintenanceType,
+        description: maintenanceDescription,
+        maintenance_date: maintenanceDate,
+        odometer_reading: Number(maintenanceOdometer),
+        cost: maintenanceCost === "" ? 0 : Number(maintenanceCost),
+      }),
+    })
       .then(function (response) {
         return response.json();
       })
@@ -751,7 +814,7 @@ function FleetManager() {
     const token = sessionStorage.getItem("token");
 
     fetch(
-      `http://localhost:3000/vehicles/${maintenanceVehicleId}/maintenance/${record.maintenance_id}`,
+      `/vehicles/${maintenanceVehicleId}/maintenance/${record.maintenance_id}`,
       {
         method: "PATCH",
         headers: {
@@ -793,7 +856,7 @@ function FleetManager() {
     const token = sessionStorage.getItem("token");
 
     fetch(
-      `http://localhost:3000/vehicles/${maintenanceVehicleId}/maintenance/${record.maintenance_id}/confirm-ready`,
+      `/vehicles/${maintenanceVehicleId}/maintenance/${record.maintenance_id}/confirm-ready`,
       {
         method: "PATCH",
         headers: {
@@ -820,7 +883,7 @@ function FleetManager() {
         handleLoadMaintenanceHistory(maintenanceVehicleId);
 
         // Refresh the vehicle list to show its latest status.
-        fetch("http://localhost:3000/vehicles", {
+        fetch("/vehicles", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -1200,6 +1263,26 @@ function FleetManager() {
                               Assign Driver
                             </button>
                           )}
+                        {vehicleDetails.assigned_driver_id &&
+                          vehicleDetails.status === "in use" && (
+                            <button
+                              type="button"
+                              disabled={unassigningVehicleId !== null}
+                              onClick={() =>
+                                handleUnassignVehicle(vehicleDetails)
+                              }
+                            >
+                              {unassigningVehicleId ===
+                              vehicleDetails.vehicle_id
+                                ? "Unassigning..."
+                                : "Unassign Driver"}
+                            </button>
+                          )}
+                        {unassignMessage && (
+                          <p className="message" role="status">
+                            {unassignMessage}
+                          </p>
+                        )}
                       </div>
                     </section>
                   </div>

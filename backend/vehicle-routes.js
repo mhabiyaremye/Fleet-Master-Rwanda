@@ -235,4 +235,64 @@ router.patch("/:vehicle_id/assign", async function (req, res) {
     });
   }
 });
+
+router.patch("/:vehicle_id/unassign", async function (req, res) {
+  try {
+    const vehicleId = Number(req.params.vehicle_id);
+
+    if (!Number.isInteger(vehicleId) || vehicleId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid vehicle id is required.",
+      });
+    }
+
+    const result = await pool.query(
+      `UPDATE vehicles
+       SET assigned_driver_id = NULL,
+           status = 'available',
+           updated_at = CURRENT_TIMESTAMP
+       WHERE vehicle_id = $1
+         AND assigned_driver_id IS NOT NULL
+         AND status = 'in use'
+       RETURNING *`,
+      [vehicleId]
+    );
+
+    if (result.rows.length === 0) {
+      const vehicleResult = await pool.query(
+        `SELECT vehicle_id, assigned_driver_id, status
+         FROM vehicles
+         WHERE vehicle_id = $1`,
+        [vehicleId]
+      );
+
+      if (vehicleResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Vehicle not found",
+        });
+      }
+
+      return res.status(409).json({
+        success: false,
+        message: "Vehicle is not currently assigned and in use.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Vehicle unassigned successfully",
+      vehicle: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Vehicle unassignment error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to unassign vehicle",
+    });
+  }
+});
+
 module.exports = router;
