@@ -1,298 +1,439 @@
+
+"use strict";
+
 const express = require("express");
 const router = express.Router();
+
 const pool = require("./database.js");
 
-const { authenticateUser, authorizeRoles } = require("./auth-middleware.js");
+const {
+  authenticateUser,
+  authorizeRoles,
+} = require("./auth-middleware.js");
 
-router.use(authenticateUser, authorizeRoles("Fleet Manager"));
+const {
+  assignVehicle,
+  unassignVehicle,
+  AssignmentError,
+} = require("./services/vehicle-assignment-service.js");
 
-router.post("/", async function (req, res) {
-  const { plate_number, make, model, year, current_odometer } = req.body;
-  const currentYear = new Date().getFullYear();
+const MAX_INTEGER = 2147483647;
+const MIN_VEHICLE_YEAR = 1980;
+
+// All routes require an authenticated Fleet Manager.
+router.use(
+  authenticateUser,
+  authorizeRoles("Fleet Manager")
+);
+
+/**
+ * Parse a positive PostgreSQL INTEGER identifier.
+ * Rejects decimals, negative numbers, zero,
+ * scientific notation and malformed strings.
+ */
+function parsePositiveId(value) {
   if (
-    !plate_number ||
-    !make ||
-    !model ||
-    !year ||
-    current_odometer === undefined
+    typeof value !== "string" &&
+    typeof value !== "number"
+  ) {
+    return null;
+  }
+
+  const raw = String(value);
+
+  if (!/^[1-9]\d*$/.test(raw)) {
+    return null;
+  }
+
+  const parsed = Number(raw);
+
+  if (
+    !Number.isSafeInteger(parsed) ||
+    parsed > MAX_INTEGER
+  ) {
+    return null;
+  }
+
+  return parsed;
+}
+
+/**
+ * Parse a non-negative PostgreSQL INTEGER.
+ */
+function parseNonNegativeInteger(value) {
+  if (
+    typeof value !== "string" &&
+    typeof value !== "number"
+  ) {
+    return null;
+  }
+
+  const raw = String(value);
+
+  if (!/^(0|[1-9]\d*)$/.test(raw)) {
+    return null;
+  }
+
+  const parsed = Number(raw);
+
+  if (
+    !Number.isSafeInteger(parsed) ||
+    parsed > MAX_INTEGER
+  ) {
+    return null;
+  }
+
+  return parsed;
+}
+
+/**
+ * Validate a required text field.
+ */
+function validateText(value, maxLength) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const cleaned = value.trim();
+
+  if (
+    cleaned.length === 0 ||
+    cleaned.length > maxLength
+  ) {
+    return null;
+  }
+
+  return cleaned;
+}
+
+/**
+ * Translate service and PostgreSQL errors
+ * into safe HTTP responses.
+ */
+function handleRouteError(res, error, operation) {
+  if (error instanceof AssignmentError) {
+    return res.status(error.status).json({
+      success: false,
+      message: error.message,
+    });
+  }
+
+  // Unique constraint violation.
+  if (error.code === "23505") {
+    return res.status(409).json({
+      success: false,
+      message:
+        "A conflicting vehicle or driver assignment already exists.",
+    });
+  }
+
+  // Foreign-key constraint violation.
+  if (error.code === "23503") {
+    return res.status(409).json({
+      success: false,
+      message:
+        "The operation conflicts with an existing database relationship.",
+    });
+  }
+
+  // PostgreSQL serialization failure or deadlock.
+  if (
+    error.code === "40001" ||
+    error.code === "40P01"
+  ) {
+    return res.status(503).json({
+      success: false,
+      message:
+        "The operation could not be completed due to concurrent activity. Please try again.",
+    });
+  }
+
+  console.error(`Vehicle ${operation} error:`, error);
+
+  return res.status(500).json({
+    success: false,
+    message: `Failed to ${operation} vehicle.`,
+  });
+}
+
+/**
+ * POST /
+ *
+ * Create a new vehicle.
+ */
+router.post("/", async function (req, res) {
+  const body = req.body || {};
+
+  const {
+    plate_number,
+    make,
+    model,
+    year,
+    current_odometer,
+  } = body;
+
+  const plateNumber = validateText(plate_number, 30);
+  const vehicleMake = validateText(make, 100);
+  const vehicleModel = validateText(model, 100);
+
+  const vehicleYear = parsePositiveId(year);
+
+  const odometer = parseNonNegativeInteger(
+    current_odometer
+  );
+
+  const currentYear = new Date().getFullYear();
+
+  if (
+    !plateNumber ||
+    !vehicleMake ||
+    !vehicleModel ||
+    vehicleYear === null ||
+    odometer === null
   ) {
     return res.status(400).json({
       success: false,
-      message: "All fields are required",
+      message:
+        "Valid plate number, make, model, year and odometer are required.",
     });
   }
-  if (isNaN(year) || isNaN(current_odometer)) {
+
+  if (
+    vehicleYear < MIN_VEHICLE_YEAR ||
+    vehicleYear > currentYear + 1
+  ) {
     return res.status(400).json({
       success: false,
-      message: "Year and current odometer must be valid  numbers",
+      message:
+        "The vehicle manufacturing year is invalid.",
     });
   }
-  if (year < 1980 || year > currentYear + 1) {
-    return res.status(400).json({
-      success: false,
-      message: "The year is not valid",
-    });
-  }
-  if (current_odometer < 0) {
-    return res.status(400).json({
-      success: false,
-      message: "The odometer can not be a negative number",
-    });
-  }
+
   try {
     const result = await pool.query(
-      `insert into vehicles (
-            plate_number,
-            make,
-            model,
-            year,
-            current_odometer)
-            values(
-            $1,$2,$3,$4,$5)
-            on conflict(plate_number)do nothing
-            returning*`,
-      [plate_number, make, model, year, current_odometer],
+      `INSERT INTO public.vehicles (
+         plate_number,
+         make,
+         model,
+         year,
+         current_odometer
+       )
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (plate_number) DO NOTHING
+       RETURNING *`,
+      [
+        plateNumber,
+        vehicleMake,
+        vehicleModel,
+        vehicleYear,
+        odometer,
+      ]
     );
-    if (result.rows.length === 0) {
-      return res.status(400).json({
+
+    if (result.rowCount === 0) {
+      return res.status(409).json({
         success: false,
-        message: "Plate_number already exists",
+        message:
+          "A vehicle with this plate number already exists.",
       });
     }
+
     return res.status(201).json({
       success: true,
-      message: "Vehicle created successfuly",
+      message: "Vehicle created successfully",
       vehicle: result.rows[0],
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
-      message: "Database Error",
-    });
+    return handleRouteError(
+      res,
+      error,
+      "create"
+    );
   }
 });
+
+/**
+ * GET /
+ *
+ * Retrieve all vehicles with their
+ * currently assigned driver information.
+ */
 router.get("/", async function (req, res) {
   try {
-    const result = await pool.query(`SELECT
-    vehicles.*,
-    users.firstname,
-    users.lastname
-  FROM vehicles
-  LEFT JOIN users
-    ON vehicles.assigned_driver_id = users.employee_id
-  ORDER BY vehicles.vehicle_id ASC`);
+    const result = await pool.query(
+      `SELECT
+         v.*,
+         u.firstname,
+         u.lastname
+       FROM public.vehicles AS v
+       LEFT JOIN public.users AS u
+         ON v.assigned_driver_id = u.employee_id
+       ORDER BY v.vehicle_id ASC`
+    );
+
     return res.status(200).json({
       success: true,
       vehicles: result.rows,
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to retreive vehicles",
-    });
-  }
-});
-router.get("/approved-employees", async function (req, res) {
-  try {
-    const result = await pool.query(
-      `SELECT employee_id, firstname, lastname
-       FROM users
-       WHERE status = 'approved'
-         AND role = 'Driver'
-       ORDER BY firstname ASC`,
+    console.error(
+      "Vehicle retrieval error:",
+      error
     );
-
-    return res.status(200).json({
-      success: true,
-      employees: result.rows,
-    });
-  } catch (error) {
-    console.log(error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to retrieve approved employees",
-    });
-  }
-});
-router.patch("/:vehicle_id/assign", async function (req, res) {
-  try {
-    const vehicleId = Number(req.params.vehicle_id);
-    const employeeId = req.body && req.body.employee_id;
-    const numericEmployeeId = Number(employeeId);
-
-    if (!Number.isInteger(vehicleId) || vehicleId <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "A valid vehicle id is required.",
-      });
-    }
-
-    if (!Number.isInteger(numericEmployeeId) || numericEmployeeId <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "A valid driver id is required.",
-      });
-    }
-
-    const vehicleResult = await pool.query(
-      `select vehicle_id,assigned_driver_id,status from vehicles where
-      vehicle_id = $1`,
-      [vehicleId],
-    );
-    if (vehicleResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Vehicle not found",
-      });
-    }
-    const vehicle = vehicleResult.rows[0];
-    if (vehicle.assigned_driver_id) {
-      return res.status(409).json({
-        success: false,
-        message: "Vehicle is already assigned",
-      });
-    }
-    if (
-      vehicle.status === "maintenance" ||
-      vehicle.status === "out of service"
-    ) {
-      return res.status(409).json({
-        success: false,
-        message: "Vehicle is not available for assignment",
-      });
-    }
-    const driverResult = await pool.query(
-      `SELECT employee_id
-       FROM users
-       WHERE employee_id = $1
-         AND role = 'Driver'
-         AND status = 'approved'`,
-      [numericEmployeeId],
-    );
-    if (driverResult.rows.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "The selected employee is not an approved driver.",
-      });
-    }
-
-    const assignmentResult = await pool.query(
-      `SELECT vehicle_id
-       FROM vehicles
-       WHERE assigned_driver_id = $1`,
-      [numericEmployeeId],
-    );
-    if (assignmentResult.rows.length > 0) {
-      return res.status(409).json({
-        success: false,
-        message: "Driver already assigned",
-        driver: numericEmployeeId,
-      });
-    }
-
-    const result = await pool.query(
-      `UPDATE vehicles
-   SET assigned_driver_id = $1,
-       status = 'in use',
-       updated_at = CURRENT_TIMESTAMP
-   FROM users
-   WHERE vehicles.vehicle_id = $2
-     AND users.employee_id = $1
-     AND users.role = 'Driver'
-     AND users.status = 'approved'
-     AND vehicles.assigned_driver_id IS NULL
-     AND vehicles.status NOT IN ('maintenance', 'out of service')
-     AND NOT EXISTS (
-       SELECT 1
-       FROM vehicles AS assigned_vehicle
-       WHERE assigned_vehicle.assigned_driver_id = users.employee_id
-     )
-   RETURNING vehicles.*, users.firstname, users.lastname`,
-      [numericEmployeeId, vehicleId],
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(409).json({
-        success: false,
-        message: "The vehicle or driver is no longer available for assignment.",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Vehicle assigned successfully",
-      vehicle: result.rows[0],
-    });
-  } catch (error) {
-    console.log(error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to assign vehicle",
+      message: "Failed to retrieve vehicles",
     });
   }
 });
 
-router.patch("/:vehicle_id/unassign", async function (req, res) {
-  try {
-    const vehicleId = Number(req.params.vehicle_id);
-
-    if (!Number.isInteger(vehicleId) || vehicleId <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "A valid vehicle id is required.",
-      });
-    }
-
-    const result = await pool.query(
-      `UPDATE vehicles
-       SET assigned_driver_id = NULL,
-           status = 'available',
-           updated_at = CURRENT_TIMESTAMP
-       WHERE vehicle_id = $1
-         AND assigned_driver_id IS NOT NULL
-         AND status = 'in use'
-       RETURNING *`,
-      [vehicleId]
-    );
-
-    if (result.rows.length === 0) {
-      const vehicleResult = await pool.query(
-        `SELECT vehicle_id, assigned_driver_id, status
-         FROM vehicles
-         WHERE vehicle_id = $1`,
-        [vehicleId]
+/**
+ * GET /approved-employees
+ *
+ * Retrieve approved employees who hold
+ * the Driver role.
+ *
+ * Existing response structure is preserved.
+ */
+router.get(
+  "/approved-employees",
+  async function (req, res) {
+    try {
+      const result = await pool.query(
+        `SELECT
+           employee_id,
+           firstname,
+           lastname
+         FROM public.users
+         WHERE status = 'approved'
+           AND role = 'Driver'
+         ORDER BY firstname ASC, lastname ASC`
       );
 
-      if (vehicleResult.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: "Vehicle not found",
-        });
-      }
+      return res.status(200).json({
+        success: true,
+        employees: result.rows,
+      });
+    } catch (error) {
+      console.error(
+        "Approved employees retrieval error:",
+        error
+      );
 
-      return res.status(409).json({
+      return res.status(500).json({
         success: false,
-        message: "Vehicle is not currently assigned and in use.",
+        message:
+          "Failed to retrieve approved employees",
+      });
+    }
+  }
+);
+
+/**
+ * PATCH /:vehicle_id/assign
+ *
+ * Assign an approved driver to an available vehicle.
+ *
+ * The service updates current assignment and
+ * inserts assignment history atomically.
+ */
+router.patch(
+  "/:vehicle_id/assign",
+  async function (req, res) {
+    const vehicleId = parsePositiveId(
+      req.params.vehicle_id
+    );
+
+   const employeeId =
+  typeof req.body?.employee_id === "string"
+    ? req.body.employee_id.trim()
+    : null;
+
+    if (vehicleId === null) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "A valid vehicle id is required.",
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      message: "Vehicle unassigned successfully",
-      vehicle: result.rows[0],
-    });
-  } catch (error) {
-    console.error("Vehicle unassignment error:", error);
+  if (
+  employeeId === null ||
+  employeeId.length === 0 ||
+  employeeId.length > 255
+) {
+  return res.status(400).json({
+    success: false,
+    message:
+      "A valid driver employee ID is required.",
+  });
+}
+    try {
+      const vehicle = await assignVehicle(
+        vehicleId,
+        employeeId
+      );
 
-    return res.status(500).json({
-      success: false,
-      message: "Failed to unassign vehicle",
-    });
+      return res.status(200).json({
+        success: true,
+        message:
+          "Vehicle assigned successfully",
+        vehicle,
+      });
+    } catch (error) {
+      return handleRouteError(
+        res,
+        error,
+        "assign"
+      );
+    }
   }
-});
+);
+
+/**
+ * PATCH /:vehicle_id/unassign
+ *
+ * Unassign the current driver.
+ *
+ * The service closes the active history record
+ * and updates the vehicle in one transaction.
+ */
+router.patch(
+  "/:vehicle_id/unassign",
+  async function (req, res) {
+    const vehicleId = parsePositiveId(
+      req.params.vehicle_id
+    );
+
+    if (vehicleId === null) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "A valid vehicle id is required.",
+      });
+    }
+
+    try {
+      const vehicle = await unassignVehicle(
+        vehicleId,
+        "manual"
+      );
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Vehicle unassigned successfully",
+        vehicle,
+      });
+    } catch (error) {
+      return handleRouteError(
+        res,
+        error,
+        "unassign"
+      );
+    }
+  }
+);
 
 module.exports = router;
