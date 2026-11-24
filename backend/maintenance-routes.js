@@ -3,164 +3,51 @@ const router = express.Router();
 const pool = require("./database.js");
 
 const { authenticateUser, authorizeRoles } = require("./auth-middleware.js");
+const {
+  startMaintenance,
+  MaintenanceError,
+} = require("./services/vehicle-maintenance-service.js");
 
 // Only Fleet Managers can access maintenance endpoints.
 router.use(authenticateUser, authorizeRoles("Fleet Manager"));
 
 // Start maintenance for a vehicle.
+
+// Start maintenance for a vehicle.
+
 router.post("/:vehicle_id/maintenance", async function (req, res) {
-  const vehicleId = Number(req.params.vehicle_id);
-
-  const {
-    maintenance_type,
-    description,
-    maintenance_date,
-    odometer_reading,
-    cost = 0,
-  } = req.body || {};
-  const isNonBlankString = (value) =>
-    typeof value === "string" && value.trim().length > 0;
-
-  const isValidDate = (value) => {
-    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      return false;
-    }
-
-    const date = new Date(`${value}T00:00:00.000Z`);
-
-    return (
-      !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
-    );
-  };
-
-  const validOdometer =
-    (typeof odometer_reading === "number" ||
-      (typeof odometer_reading === "string" &&
-        odometer_reading.trim() !== "")) &&
-    Number.isSafeInteger(Number(odometer_reading)) &&
-    Number(odometer_reading) >= 0;
-
-  const validCost =
-    (typeof cost === "number" ||
-      (typeof cost === "string" && cost.trim() !== "")) &&
-    Number.isFinite(Number(cost)) &&
-    Number(cost) >= 0;
-
-  if (
-    !Number.isSafeInteger(vehicleId) ||
-    vehicleId <= 0 ||
-    !isNonBlankString(maintenance_type) ||
-    !isNonBlankString(description) ||
-    !isValidDate(maintenance_date) ||
-    !validOdometer
-  ) {
-    return res.status(400).json({
-      success: false,
-      message:
-        "Provide a valid vehicle ID, maintenance type, description, date (YYYY-MM-DD), and non-negative integer odometer reading",
-    });
-  }
-
-  if (!validCost) {
-    return res.status(400).json({
-      success: false,
-      message: "Cost must be a valid non-negative number",
-    });
-  }
-
-  const client = await pool.connect();
-
   try {
-    await client.query("BEGIN");
-
-    const vehicleResult = await client.query(
-      `SELECT vehicle_id, status, current_odometer
-             FROM vehicles
-             WHERE vehicle_id = $1
-             FOR UPDATE`,
-      [vehicleId],
+    const maintenance = await startMaintenance(
+      req.params.vehicle_id,
+      req.body
     );
-
-    if (vehicleResult.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({
-        success: false,
-        message: "Vehicle not found",
-      });
-    }
-
-    const vehicle = vehicleResult.rows[0];
-
-    if (
-      vehicle.status === "maintenance" ||
-      vehicle.status === "out of service"
-    ) {
-      await client.query("ROLLBACK");
-      return res.status(409).json({
-        success: false,
-        message: "This vehicle cannot start maintenance in its current status",
-      });
-    }
-
-    if (Number(odometer_reading) < vehicle.current_odometer) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({
-        success: false,
-        message:
-          "Maintenance odometer reading cannot be below the vehicle's current odometer",
-      });
-    }
-
-    const maintenanceResult = await client.query(
-      `INSERT INTO maintenance_records (
-                vehicle_id,
-                maintenance_type,
-                description,
-                maintenance_date,
-                odometer_reading,
-                cost
-            )
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING *`,
-      [
-        vehicleId,
-        maintenance_type,
-        description,
-        maintenance_date,
-        Number(odometer_reading),
-        Number(cost),
-      ],
-    );
-
-    await client.query(
-      `UPDATE vehicles
-             SET status = 'maintenance',
-                 assigned_driver_id = NULL,
-                 current_odometer = GREATEST(current_odometer, $1),
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE vehicle_id = $2`,
-      [Number(odometer_reading), vehicleId],
-    );
-
-    await client.query("COMMIT");
 
     return res.status(201).json({
       success: true,
       message: "Maintenance started successfully",
-      maintenance: maintenanceResult.rows[0],
+      maintenance,
     });
+
   } catch (error) {
-    await client.query("ROLLBACK");
-    console.error("Failed to start maintenance:", error);
+    if (error instanceof MaintenanceError) {
+      return res.status(error.status).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error(
+      "Failed to start maintenance:",
+      error.code || error.name
+    );
 
     return res.status(500).json({
       success: false,
       message: "Failed to start maintenance",
     });
-  } finally {
-    client.release();
   }
 });
+
 
 // Retrieve a vehicle's maintenance history.
 router.get("/:vehicle_id/maintenance", async function (req, res) {
@@ -371,13 +258,13 @@ router.patch(
 
       // Lock the vehicle so its status cannot change
       // during this transaction.
-      const vehicleResult = await client.query(
-        `SELECT vehicle_id, status
-                 FROM vehicles
-                 WHERE vehicle_id = $1
-                 FOR UPDATE`,
-        [vehicleId],
-      );
+     const vehicleResult = await client.query(
+  `SELECT vehicle_id, status, assigned_driver_id
+   FROM vehicles
+   WHERE vehicle_id = $1
+   FOR UPDATE`,
+  [vehicleId],
+);
 
       if (vehicleResult.rows.length === 0) {
         await client.query("ROLLBACK");
@@ -475,6 +362,30 @@ router.patch(
             "Vehicle must be in maintenance status before confirming readiness",
         });
       }
+
+// Verify that no unresolved assignment exists.
+
+const activeAssignment = await client.query(
+  `SELECT assignment_id
+   FROM public.vehicle_assignment_history
+   WHERE vehicle_id = $1
+     AND unassigned_at IS NULL
+   FOR UPDATE`,
+  [vehicleId]
+);
+
+if (
+  vehicle.assigned_driver_id !== null ||
+  activeAssignment.rowCount > 0
+) {
+  await client.query("ROLLBACK");
+
+  return res.status(409).json({
+    success: false,
+    message: "Vehicle assignment state is inconsistent",
+  });
+}
+
 
       // Record the Fleet Manager's readiness confirmation.
       const updatedRecord = await client.query(
