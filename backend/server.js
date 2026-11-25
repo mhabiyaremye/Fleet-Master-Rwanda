@@ -1,4 +1,3 @@
-
 const { randomUUID } = require("node:crypto");
 const { loadEnvFile } = require("node:process");
 const path = require("node:path");
@@ -908,6 +907,12 @@ app.get(
   },
 );
 
-app.listen(3000, function () {
-  console.log("Server initiated");
-});
+// Start the HTTP listener only when this file is executed directly.
+// Integration tests import the same Express app without opening port 3000.
+if (require.main === module) {
+  app.listen(3000, function () {
+    console.log("Server initiated");
+  });
+}
+
+module.exports = app;
