@@ -9,7 +9,7 @@ const pool = require("./src/config/database.js");
 const {
   authenticateUser,
   authorizeRoles,
-} = require("./auth-middleware.js");
+} = require("./src/middleware/authentication.js");
 
 const {
   assignVehicle,

@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const pool = require("./src/config/database.js");
+const pool = require("../config/database.js");
 
 async function authenticateUser(req, res, next) {
   const authHeaders = req.headers.authorization;

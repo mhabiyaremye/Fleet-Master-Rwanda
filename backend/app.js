@@ -22,7 +22,7 @@ const fuelPlanningRoutes = require("./fuel-planning-routes");
 const {
   authenticateUser,
   authorizeRoles,
-} = require("./auth-middleware.js");
+} = require("./src/middleware/authentication.js");
 
 // Initialize Express.
 const app = express();

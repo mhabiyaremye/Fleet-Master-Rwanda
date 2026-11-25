@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("./src/config/database.js");
 
-const { authenticateUser, authorizeRoles } = require("./auth-middleware.js");
+const { authenticateUser, authorizeRoles } = require("./src/middleware/authentication.js");
 const {
   startMaintenance,
   updateMaintenance,
