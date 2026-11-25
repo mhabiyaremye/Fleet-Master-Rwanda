@@ -7,7 +7,7 @@ const assert = require("node:assert/strict");
 // Replace the database dependency only inside this test process.
 const databasePath = require.resolve("../src/config/database.js");
 const servicePath = require.resolve(
-  "../services/vehicle-assignment-service.js"
+  "../src/modules/assignments/assignment.service.js"
 );
 
 const originalDatabase = require.cache[databasePath];

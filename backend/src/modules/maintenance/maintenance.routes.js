@@ -1,14 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("./src/config/database.js");
+const pool = require("../../config/database.js");
 
-const { authenticateUser, authorizeRoles } = require("./src/middleware/authentication.js");
+const { authenticateUser, authorizeRoles } = require("../../middleware/authentication.js");
 const {
   startMaintenance,
   updateMaintenance,
   confirmVehicleReady,
   MaintenanceError,
-} = require("./services/vehicle-maintenance-service.js");
+} = require("./maintenance.service.js");
 
 // Only Fleet Managers can access maintenance endpoints.
 router.use(authenticateUser, authorizeRoles("Fleet Manager"));

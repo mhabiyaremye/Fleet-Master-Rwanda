@@ -13,8 +13,8 @@ if (process.env.RUN_MAINTENANCE_INTEGRATION !== "1") {
   const TEST_DB = "fleet_master_assignment_test";
   process.env.db_name = TEST_DB;
   const pool = require("../src/config/database.js");
-  const { startMaintenance, updateMaintenance, confirmVehicleReady, MaintenanceError } = require("../services/vehicle-maintenance-service.js");
-  const { assignVehicle, AssignmentError } = require("../services/vehicle-assignment-service.js");
+  const { startMaintenance, updateMaintenance, confirmVehicleReady, MaintenanceError } = require("../src/modules/maintenance/maintenance.service.js");
+  const { assignVehicle, AssignmentError } = require("../src/modules/assignments/assignment.service.js");
   const fixturePrefix = `MT-${randomBytes(6).toString("hex")}`;
   const vehicleIds = [];
   const driverIds = [];

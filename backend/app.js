@@ -14,9 +14,9 @@ loadEnvFile(path.join(__dirname, "../.env"));
 const pool = require("./src/config/database.js");
 
 // Backend routes.
-const vehicleRoutes = require("./vehicle-routes");
-const maintenanceRoutes = require("./maintenance-routes");
-const fuelPlanningRoutes = require("./fuel-planning-routes");
+const vehicleRoutes = require("./src/modules/vehicles/vehicles.routes.js");
+const maintenanceRoutes = require("./src/modules/maintenance/maintenance.routes.js");
+const fuelPlanningRoutes = require("./src/modules/fuel-planning/fuel-planning.routes.js");
 
 // Authentication middleware.
 const {

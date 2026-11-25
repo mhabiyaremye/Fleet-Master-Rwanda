@@ -14,7 +14,7 @@ if (process.env.RUN_ASSIGNMENT_INTEGRATION !== "1") {
   const TEST_DB = "fleet_master_assignment_test";
   process.env.db_name = TEST_DB;
   const pool = require("../src/config/database.js");
-  const { assignVehicle, unassignVehicle, AssignmentError } = require("../services/vehicle-assignment-service.js");
+  const { assignVehicle, unassignVehicle, AssignmentError } = require("../src/modules/assignments/assignment.service.js");
   const prefix = `IT-${randomBytes(6).toString("hex")}`;
   const drivers = [];
   const vehicles = [];

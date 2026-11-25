@@ -6,7 +6,7 @@
 // Vehicle Assignment Service
 // ==================================================
 
-const pool = require("../src/config/database.js");
+const pool = require("../../config/database.js");
 
 // --------------------------------------------------
 // Configuration

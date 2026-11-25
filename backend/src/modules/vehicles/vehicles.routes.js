@@ -4,18 +4,18 @@
 const express = require("express");
 const router = express.Router();
 
-const pool = require("./src/config/database.js");
+const pool = require("../../config/database.js");
 
 const {
   authenticateUser,
   authorizeRoles,
-} = require("./src/middleware/authentication.js");
+} = require("../../middleware/authentication.js");
 
 const {
   assignVehicle,
   unassignVehicle,
   AssignmentError,
-} = require("./services/vehicle-assignment-service.js");
+} = require("../assignments/assignment.service.js");
 
 const MAX_INTEGER = 2147483647;
 const MIN_VEHICLE_YEAR = 1980;
