@@ -1,0 +1,90 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-tests:
+    name: Backend regression tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: backend
+        shell: bash
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci_only_bootstrap_password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Install locked backend dependencies
+        run: npm ci
+
+      - name: Provision isolated test databases
+        env:
+          POSTGRES_CONTAINER_ID: ${{ job.services.postgres.id }}
+        run: |
+          docker exec -i "$POSTGRES_CONTAINER_ID" \
+            psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE fleet_master_ci LOGIN PASSWORD 'ci_only_app_password'
+            NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+          CREATE DATABASE fleet_master_baseline_test OWNER fleet_master_ci;
+          CREATE DATABASE fleet_master_runner_test OWNER fleet_master_ci;
+          CREATE DATABASE fleet_master_assignment_test OWNER fleet_master_ci;
+          SQL
+
+      - name: Generate temporary test environment
+        env:
+          POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
+        run: |
+          umask 077
+          test ! -e ../.env
+          cat > ../.env <<ENV
+          db_host=127.0.0.1
+          db_port=$POSTGRES_PORT
+          db_user=fleet_master_ci
+          db_password=ci_only_app_password
+          db_name=fleet_master_assignment_test
+          JWT_SECRET=ci_only_jwt_secret_not_for_production
+          initial_admin_setup_code=ci_only_setup_code
+          ENV
+
+      - name: Initialize versioned test schemas
+        run: |
+          node scripts/migrate.cjs apply fleet_master_baseline_test
+          node scripts/migrate.cjs apply fleet_master_runner_test
+          node scripts/migrate.cjs apply fleet_master_assignment_test
+
+      - name: Run complete backend regression suite
+        run: npm run test:all
