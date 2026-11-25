@@ -8,21 +8,21 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 // Load environment variables BEFORE importing database modules.
-loadEnvFile(path.join(__dirname, "../.env"));
+loadEnvFile(path.join(__dirname, "../../.env"));
 
 // Database connection.
-const pool = require("./src/config/database.js");
+const pool = require("./config/database.js");
 
 // Backend routes.
-const vehicleRoutes = require("./src/modules/vehicles/vehicles.routes.js");
-const maintenanceRoutes = require("./src/modules/maintenance/maintenance.routes.js");
-const fuelPlanningRoutes = require("./src/modules/fuel-planning/fuel-planning.routes.js");
+const vehicleRoutes = require("./modules/vehicles/vehicles.routes.js");
+const maintenanceRoutes = require("./modules/maintenance/maintenance.routes.js");
+const fuelPlanningRoutes = require("./modules/fuel-planning/fuel-planning.routes.js");
 
 // Authentication middleware.
 const {
   authenticateUser,
   authorizeRoles,
-} = require("./src/middleware/authentication.js");
+} = require("./middleware/authentication.js");
 
 // Initialize Express.
 const app = express();

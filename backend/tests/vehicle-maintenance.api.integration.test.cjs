@@ -38,10 +38,10 @@ if (process.env.RUN_MAINTENANCE_API_INTEGRATION !== "1") {
     assert.equal(rows[0].name, TEST_DB);
     databaseVerified = true;
 
-    const app = require("../server.js");
+    const app = require("../src/app.js");
     assert.equal(process.env.db_name, TEST_DB);
     assert.equal(process.env.JWT_SECRET, testJwtSecret, "Test JWT secret must not be replaced");
-    assert.equal(typeof app.listen, "function", "server.js must export the Express app");
+    assert.equal(typeof app.listen, "function", "app.js must export the Express app");
     server = app.listen(0, "127.0.0.1");
     await new Promise((resolve, reject) => {
       server.once("listening", resolve);
