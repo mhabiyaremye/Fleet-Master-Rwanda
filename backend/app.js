@@ -483,7 +483,7 @@ app.get(
         return;
     }
 
-  
+
     pool.query("select *from users where employee_id= $1",
     [employeeId]
 )
@@ -492,8 +492,8 @@ app.get(
        res.json({
         success:false,
         message:"Employee Id not found"
-       }) 
-       return; 
+       })
+       return;
     }
     pool.query(`update users set role = $1,status = $2 where employee_id = $3`,
         [role,status,employeeId]
@@ -503,7 +503,7 @@ app.get(
             success:true,
             message:"User priviledges updated"
     })
-    
+
     })
     .catch(function(error){
         console.log("database error",error);
