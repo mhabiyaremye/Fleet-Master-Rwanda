@@ -1,4 +1,3 @@
-
 "use strict";
 
 const path = require("node:path");
@@ -76,6 +75,7 @@ if (
 // Integration test databases must be local.
 if (
   (
+    databaseName === "fleet_master_baseline_test" ||
     databaseName === "fleet_master_runner_test" ||
     databaseName === "fleet_master_assignment_test"
   ) &&
@@ -167,10 +167,30 @@ async function main() {
 
   try {
     // Read and validate migrations before connecting.
-    const migrations =
+    const availableMigrations =
       command === "apply"
         ? readMigrations(migrationsDir)
         : [];
+
+    // The baseline verification database must remain at migration 0001.
+    // Use the original migration object so its checksum is preserved.
+    const migrations =
+      databaseName === "fleet_master_baseline_test"
+        ? availableMigrations.filter(
+            (migration) =>
+              migration.filename === "0001_baseline_schema.sql"
+          )
+        : availableMigrations;
+
+    if (
+      command === "apply" &&
+      databaseName === "fleet_master_baseline_test" &&
+      migrations.length !== 1
+    ) {
+      throw new Error(
+        "Baseline verification requires exactly one 0001_baseline_schema.sql migration."
+      );
+    }
 
     if (
       command === "apply" &&
