@@ -18,7 +18,7 @@ if (process.env.RUN_MAINTENANCE_API_INTEGRATION !== "1") {
   const localDatabaseHosts = new Set(["localhost", "127.0.0.1", "::1", "/var/run/postgresql"]);
   assert.ok(localDatabaseHosts.has(process.env.db_host), "HTTP tests require an explicitly configured local PostgreSQL host");
 
-  const pool = require("../database.js");
+  const pool = require("../src/config/database.js");
   const bcrypt = require("bcryptjs");
   const jwt = require("jsonwebtoken");
   const fixturePrefix = `API-${randomBytes(5).toString("hex")}`;

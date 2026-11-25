@@ -11,7 +11,7 @@ const jwt = require("jsonwebtoken");
 loadEnvFile(path.join(__dirname, "../.env"));
 
 // Database connection.
-const pool = require("./database");
+const pool = require("./src/config/database.js");
 
 // Backend routes.
 const vehicleRoutes = require("./vehicle-routes");

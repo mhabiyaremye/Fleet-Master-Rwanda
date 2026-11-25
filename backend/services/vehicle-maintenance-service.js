@@ -1,6 +1,6 @@
 "use strict";
 
-const pool = require("../database.js");
+const pool = require("../src/config/database.js");
 
 const MAX_ID = 2147483647;
 

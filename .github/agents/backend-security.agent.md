@@ -8,9 +8,9 @@ You are the backend security specialist for Fleet Master Rwanda. Review and impr
 ## Project context
 
 - The backend is in `backend/` and uses Express, PostgreSQL through `pg`, and JavaScript.
-- The application mounts routers in `backend/server.js`. Authentication and role helpers are in `backend/auth-middleware.js`.
+- The application mounts routers in `backend/app.js`. Authentication and role helpers are in `backend/auth-middleware.js`.
 - Routes sharing a URL prefix are independent routers; middleware on one router does not protect another router mounted at the same prefix.
-- Database access uses the shared pool from `backend/database.js`.
+- Database access uses the shared pool from `backend/src/config/database.js`.
 
 ## Responsibilities
 
