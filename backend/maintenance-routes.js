@@ -5,13 +5,13 @@ const pool = require("./database.js");
 const { authenticateUser, authorizeRoles } = require("./auth-middleware.js");
 const {
   startMaintenance,
+  updateMaintenance,
+  confirmVehicleReady,
   MaintenanceError,
 } = require("./services/vehicle-maintenance-service.js");
 
 // Only Fleet Managers can access maintenance endpoints.
 router.use(authenticateUser, authorizeRoles("Fleet Manager"));
-
-// Start maintenance for a vehicle.
 
 // Start maintenance for a vehicle.
 
@@ -87,147 +87,35 @@ router.get("/:vehicle_id/maintenance", async function (req, res) {
 router.patch(
   "/:vehicle_id/maintenance/:maintenance_id",
   async function (req, res) {
-    const vehicleId = Number(req.params.vehicle_id);
-    const maintenanceId = Number(req.params.maintenance_id);
-
-    const {
-      maintenance_type,
-      description,
-      maintenance_date,
-      odometer_reading,
-      cost,
-      status,
-    } = req.body;
-
-    if (
-      !Number.isInteger(vehicleId) ||
-      vehicleId <= 0 ||
-      !Number.isInteger(maintenanceId) ||
-      maintenanceId <= 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid vehicle ID or maintenance ID",
-      });
-    }
-
-    const allowedStatuses = ["in progress", "completed"];
-
-    if (
-      (maintenance_type !== undefined &&
-        (typeof maintenance_type !== "string" || !maintenance_type.trim())) ||
-      (description !== undefined &&
-        (typeof description !== "string" || !description.trim())) ||
-      (maintenance_date !== undefined &&
-        (typeof maintenance_date !== "string" ||
-          !/^\d{4}-\d{2}-\d{2}$/.test(maintenance_date) ||
-          Number.isNaN(Date.parse(maintenance_date)))) ||
-      (odometer_reading !== undefined &&
-        (!Number.isInteger(Number(odometer_reading)) ||
-          Number(odometer_reading) < 0)) ||
-      (cost !== undefined &&
-        (!Number.isFinite(Number(cost)) || Number(cost) < 0)) ||
-      (status !== undefined && !allowedStatuses.includes(status))
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "One or more maintenance fields are invalid",
-      });
-    }
-
-    if (
-      maintenance_type === undefined &&
-      description === undefined &&
-      maintenance_date === undefined &&
-      odometer_reading === undefined &&
-      cost === undefined &&
-      status === undefined
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Provide at least one field to update",
-      });
-    }
-
-    const client = await pool.connect();
-
     try {
-      await client.query("BEGIN");
-
-      const recordResult = await client.query(
-        `SELECT *
-             FROM maintenance_records
-             WHERE maintenance_id = $1
-               AND vehicle_id = $2
-             FOR UPDATE`,
-        [maintenanceId, vehicleId],
+      const maintenance = await updateMaintenance(
+        req.params.vehicle_id,
+        req.params.maintenance_id,
+        req.body
       );
-
-      if (recordResult.rows.length === 0) {
-        await client.query("ROLLBACK");
-        return res.status(404).json({
-          success: false,
-          message: "Maintenance record not found for this vehicle",
-        });
-      }
-
-      const existing = recordResult.rows[0];
-
-      if (existing.status !== "in progress") {
-        await client.query("ROLLBACK");
-        return res.status(409).json({
-          success: false,
-          message: "Only maintenance records in progress can be updated",
-        });
-      }
-
-      const nextStatus = status ?? existing.status;
-
-      const result = await client.query(
-        `UPDATE maintenance_records
- SET maintenance_type = COALESCE($1, maintenance_type),
-     description = COALESCE($2, description),
-     maintenance_date = COALESCE($3, maintenance_date),
-     odometer_reading = COALESCE($4, odometer_reading),
-     cost = COALESCE($5, cost),
-     status = $6::varchar,
-     completed_at = CASE
-         WHEN $6::varchar = 'completed' THEN CURRENT_TIMESTAMP
-         ELSE completed_at
-     END
- WHERE maintenance_id = $7
-   AND vehicle_id = $8
- RETURNING *`,
-
-        [
-          maintenance_type?.trim() ?? null,
-          description?.trim() ?? null,
-          maintenance_date ?? null,
-          odometer_reading === undefined ? null : Number(odometer_reading),
-          cost === undefined ? null : Number(cost),
-          nextStatus,
-          maintenanceId,
-          vehicleId,
-        ],
-      );
-
-      await client.query("COMMIT");
 
       return res.status(200).json({
         success: true,
         message: "Maintenance record updated successfully",
-        maintenance: result.rows[0],
+        maintenance,
       });
     } catch (error) {
-      await client.query("ROLLBACK");
-      console.error("Failed to update maintenance:", error);
+      if (error instanceof MaintenanceError) {
+        return res.status(error.status).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      console.error(
+        "Failed to update maintenance:",
+        error.code || error.name
+      );
 
       return res.status(500).json({
         success: false,
         message: "Failed to update maintenance record",
       });
-    } finally {
-      client.release();
     }
   },
 );
@@ -236,195 +124,31 @@ router.patch(
 router.patch(
   "/:vehicle_id/maintenance/:maintenance_id/confirm-ready",
   async function (req, res) {
-    const vehicleId = Number(req.params.vehicle_id);
-    const maintenanceId = Number(req.params.maintenance_id);
-
-    if (
-      !Number.isInteger(vehicleId) ||
-      vehicleId <= 0 ||
-      !Number.isInteger(maintenanceId) ||
-      maintenanceId <= 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid vehicle ID or maintenance ID",
-      });
-    }
-
-    const client = await pool.connect();
-
     try {
-      await client.query("BEGIN");
-
-      // Lock the vehicle so its status cannot change
-      // during this transaction.
-     const vehicleResult = await client.query(
-  `SELECT vehicle_id, status, assigned_driver_id
-   FROM vehicles
-   WHERE vehicle_id = $1
-   FOR UPDATE`,
-  [vehicleId],
-);
-
-      if (vehicleResult.rows.length === 0) {
-        await client.query("ROLLBACK");
-        return res.status(404).json({
-          success: false,
-          message: "Vehicle not found",
-        });
-      }
-
-      // Lock the maintenance record and verify it belongs
-      // to this vehicle.
-      const recordResult = await client.query(
-        `SELECT maintenance_id, vehicle_id, status,
-                        ready_confirmed_at
-                 FROM maintenance_records
-                 WHERE maintenance_id = $1
-                   AND vehicle_id = $2
-                 FOR UPDATE`,
-        [maintenanceId, vehicleId],
+      const { maintenance, vehicle } = await confirmVehicleReady(
+        req.params.vehicle_id,
+        req.params.maintenance_id
       );
-
-      if (recordResult.rows.length === 0) {
-        await client.query("ROLLBACK");
-        return res.status(404).json({
-          success: false,
-          message: "Maintenance record not found for this vehicle",
-        });
-      }
-
-      const vehicle = vehicleResult.rows[0];
-      const record = recordResult.rows[0];
-
-      if (record.status !== "completed") {
-        await client.query("ROLLBACK");
-        return res.status(409).json({
-          success: false,
-          message: "Maintenance must be completed before confirming readiness",
-        });
-      }
-
-      const latestMaintenanceResult = await client.query(
-        `SELECT maintenance_id
-   FROM maintenance_records
-   WHERE vehicle_id = $1
-     AND status <> 'cancelled'
-   ORDER BY created_at DESC, maintenance_id DESC
-   LIMIT 1
-   FOR UPDATE`,
-        [vehicleId],
-      );
-
-      if (
-        latestMaintenanceResult.rows.length === 0 ||
-        Number(latestMaintenanceResult.rows[0].maintenance_id) !== maintenanceId
-      ) {
-        await client.query("ROLLBACK");
-        return res.status(409).json({
-          success: false,
-          message:
-            "Only the latest non-cancelled maintenance record can be used to confirm readiness",
-        });
-      }
-
-      const activeMaintenanceResult = await client.query(
-        `SELECT maintenance_id
-   FROM maintenance_records
-   WHERE vehicle_id = $1
-     AND status = 'in progress'
-   FOR UPDATE`,
-        [vehicleId],
-      );
-
-      if (activeMaintenanceResult.rows.length > 0) {
-        await client.query("ROLLBACK");
-        return res.status(409).json({
-          success: false,
-          message: "Vehicle has another maintenance record in progress",
-        });
-      }
-
-      if (record.ready_confirmed_at !== null) {
-        await client.query("ROLLBACK");
-        return res.status(409).json({
-          success: false,
-          message:
-            "Vehicle readiness has already been confirmed for this record",
-        });
-      }
-
-      if (vehicle.status !== "maintenance") {
-        await client.query("ROLLBACK");
-        return res.status(409).json({
-          success: false,
-          message:
-            "Vehicle must be in maintenance status before confirming readiness",
-        });
-      }
-
-// Verify that no unresolved assignment exists.
-
-const activeAssignment = await client.query(
-  `SELECT assignment_id
-   FROM public.vehicle_assignment_history
-   WHERE vehicle_id = $1
-     AND unassigned_at IS NULL
-   FOR UPDATE`,
-  [vehicleId]
-);
-
-if (
-  vehicle.assigned_driver_id !== null ||
-  activeAssignment.rowCount > 0
-) {
-  await client.query("ROLLBACK");
-
-  return res.status(409).json({
-    success: false,
-    message: "Vehicle assignment state is inconsistent",
-  });
-}
-
-
-      // Record the Fleet Manager's readiness confirmation.
-      const updatedRecord = await client.query(
-        `UPDATE maintenance_records
-                 SET ready_confirmed_at = CURRENT_TIMESTAMP
-                 WHERE maintenance_id = $1
-                   AND vehicle_id = $2
-                 RETURNING *`,
-        [maintenanceId, vehicleId],
-      );
-
-      // Only now return the vehicle to service.
-      const updatedVehicle = await client.query(
-        `UPDATE vehicles
-                 SET status = 'available',
-                     updated_at = CURRENT_TIMESTAMP
-                 WHERE vehicle_id = $1
-                 RETURNING vehicle_id, plate_number, status`,
-        [vehicleId],
-      );
-
-      await client.query("COMMIT");
 
       return res.status(200).json({
         success: true,
         message: "Vehicle readiness confirmed successfully",
-        maintenance: updatedRecord.rows[0],
-        vehicle: updatedVehicle.rows[0],
+        maintenance,
+        vehicle,
       });
     } catch (error) {
-      await client.query("ROLLBACK");
-      console.error("Failed to confirm vehicle readiness:", error);
+      if (error instanceof MaintenanceError) {
+        return res.status(error.status).json({
+          success: false,
+          message: error.message,
+        });
+      }
 
+      console.error("Failed to confirm vehicle readiness:", error.code || error.name);
       return res.status(500).json({
         success: false,
         message: "Failed to confirm vehicle readiness",
       });
-    } finally {
-      client.release();
     }
   },
 );
