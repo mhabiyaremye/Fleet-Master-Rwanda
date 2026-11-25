@@ -1,7 +1,7 @@
 # Fleet Master Rwanda — Engineering review
 
-**Review date:** 2026-11-25  
-**Source checkpoint:** `aef6108` on `master` (security remediation); reviewed application source at `d5f80d1`.  
+**Review date:** 2026-11-25
+**Source checkpoint:** `aef6108` on `master` (security remediation); reviewed application source at `d5f80d1`.
 **Status:** Initial backend engineering review complete; production approval not granted.
 
 ## Evidence and scope

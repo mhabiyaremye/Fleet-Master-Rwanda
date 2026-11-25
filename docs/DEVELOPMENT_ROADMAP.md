@@ -1,6 +1,6 @@
 # Fleet Master Rwanda — Development roadmap
 
-**Baseline:** 2026-11-25, `aef6108` on `master`.  
+**Baseline:** 2026-11-25, `aef6108` on `master`.
 **Goal:** Controlled initial customer rollout around January 2027, contingent on acceptance gates; not a promised release date.
 
 This roadmap is proposed and should be refined as the product scope and customer architecture are agreed. See ENGINEERING_REVIEW.md for finding IDs and ARCHITECTURE_DECISIONS.md for decision status.
