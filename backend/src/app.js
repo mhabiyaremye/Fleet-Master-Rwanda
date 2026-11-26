@@ -22,6 +22,11 @@ app.use(express.json());
 
 app.use(require("./modules/health/health.routes.js"));
 
+const { configureStagingAccess } =
+  require("./config/staging-access.js");
+
+configureStagingAccess(app);
+
 // Authentication and account management.
 app.use("/", authRoutes);
 app.use("/", accountsRoutes);
