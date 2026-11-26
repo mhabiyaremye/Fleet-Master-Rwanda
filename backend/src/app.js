@@ -36,4 +36,10 @@ app.use("/vehicles", vehicleRoutes);
 app.use("/vehicles", maintenanceRoutes);
 app.use("/fuel-planning", fuelPlanningRoutes);
 
+// Serve the production frontend after API routes.
+const { configureFrontendServing } =
+  require("./config/frontend-serving.js");
+
+configureFrontendServing(app);
+
 module.exports = app;
