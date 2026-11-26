@@ -62,6 +62,7 @@ jobs:
           CREATE DATABASE fleet_master_baseline_test OWNER fleet_master_ci;
           CREATE DATABASE fleet_master_runner_test OWNER fleet_master_ci;
           CREATE DATABASE fleet_master_assignment_test OWNER fleet_master_ci;
+          CREATE DATABASE fleet_master_admin_test OWNER fleet_master_ci;
           SQL
 
       - name: Generate temporary test environment
@@ -77,7 +78,6 @@ jobs:
           db_password=ci_only_app_password
           db_name=fleet_master_assignment_test
           JWT_SECRET=ci_only_jwt_secret_not_for_production
-          initial_admin_setup_code=ci_only_setup_code
           ENV
 
       - name: Initialize versioned test schemas
@@ -85,6 +85,7 @@ jobs:
           node scripts/migrate.cjs apply fleet_master_baseline_test
           node scripts/migrate.cjs apply fleet_master_runner_test
           node scripts/migrate.cjs apply fleet_master_assignment_test
+          node scripts/migrate.cjs apply fleet_master_admin_test
 
       - name: Run complete backend regression suite
         run: npm run test:all

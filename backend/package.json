@@ -6,13 +6,15 @@
   "scripts": {
     "test": "npm run test:unit",
     "dev": "node --watch src/server.js",
-    "test:integration": "npm run test:integration:migrations && npm run test:integration:assignment && npm run test:integration:maintenance",
-    "test:unit": "node --test tests/migration-validation.test.cjs tests/vehicle-assignment.test.cjs tests/health.test.cjs",
+    "test:integration": "npm run test:integration:migrations && npm run test:integration:assignment && npm run test:integration:maintenance && npm run test:integration:administration",
+    "test:unit": "node --test tests/migration-validation.test.cjs tests/vehicle-assignment.test.cjs tests/health.test.cjs tests/http-security.test.cjs",
     "test:integration:migrations": "node scripts/run-integration-tests.cjs migrations",
     "test:integration:assignment": "node scripts/run-integration-tests.cjs assignment",
     "test:integration:maintenance": "node scripts/run-integration-tests.cjs maintenance",
     "test:api": "node scripts/run-integration-tests.cjs maintenance-api",
-    "test:all": "npm run test:unit && npm run test:integration && npm run test:api"
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:api",
+    "admin:bootstrap": "node bootstrap.js",
+    "test:integration:administration": "node scripts/run-integration-tests.cjs administration"
   },
   "keywords": [],
   "author": "",

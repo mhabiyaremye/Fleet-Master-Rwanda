@@ -1,7 +1,7 @@
 
 
 const express = require("express");
-const cors = require("cors");
+const { configureHttpSecurity } = require("./config/http-security.js");
 
 // Load environment variables before importing application modules.
 require("./config/environment.js");
@@ -9,7 +9,6 @@ require("./config/environment.js");
 // Business modules.
 const authRoutes = require("./modules/auth/auth.routes.js");
 const accountsRoutes = require("./modules/accounts/accounts.routes.js");
-const administrationRoutes = require("./modules/administration/administration.routes.js");
 const vehicleRoutes = require("./modules/vehicles/vehicles.routes.js");
 const maintenanceRoutes = require("./modules/maintenance/maintenance.routes.js");
 const fuelPlanningRoutes = require("./modules/fuel-planning/fuel-planning.routes.js");
@@ -18,7 +17,7 @@ const fuelPlanningRoutes = require("./modules/fuel-planning/fuel-planning.routes
 const app = express();
 
 // Global middleware.
-app.use(cors());
+configureHttpSecurity(app);
 app.use(express.json());
 
 app.use(require("./modules/health/health.routes.js"));
@@ -26,7 +25,6 @@ app.use(require("./modules/health/health.routes.js"));
 // Authentication and account management.
 app.use("/", authRoutes);
 app.use("/", accountsRoutes);
-app.use("/", administrationRoutes);
 
 // Fleet operations.
 app.use("/vehicles", vehicleRoutes);

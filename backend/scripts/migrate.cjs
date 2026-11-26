@@ -32,6 +32,7 @@ const ALLOWED_DATABASES = new Set([
   "fleet_master_baseline_test",
   "fleet_master_runner_test",
   "fleet_master_assignment_test",
+  "fleet_master_admin_test",
 ]);
 
 const LOCAL_HOSTS = new Set([
@@ -77,7 +78,8 @@ if (
   (
     databaseName === "fleet_master_baseline_test" ||
     databaseName === "fleet_master_runner_test" ||
-    databaseName === "fleet_master_assignment_test"
+    databaseName === "fleet_master_assignment_test" ||
+    databaseName === "fleet_master_admin_test"
   ) &&
   !LOCAL_HOSTS.has(process.env.db_host)
 ) {

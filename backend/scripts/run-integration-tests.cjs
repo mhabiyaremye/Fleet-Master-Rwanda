@@ -7,6 +7,14 @@ const { spawnSync } = require("node:child_process");
 const backendDirectory = path.resolve(__dirname, "..");
 
 const integrationSuites = {
+
+  administration: {
+    file: "tests/admin-bootstrap.integration.test.cjs",
+    environment: {
+      RUN_ADMIN_INTEGRATION: "1",
+    },
+  },
+
   migrations: {
     file: "tests/migration-integration.test.cjs",
     environment: {},
