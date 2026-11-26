@@ -1,16 +1,29 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+
+const backendTarget = "http://localhost:3000";
+
+const apiRoutes = [
+  "/login",
+  "/register",
+  "/approval",
+  "/rejected",
+  "/deactivated",
+  "/reactivate",
+  "/get-pending-users",
+  "/get-all-users",
+  "/get-deactivated-users",
+  "/vehicles",
+  "/fuel-planning",
+];
 
 export default defineConfig({
   plugins: [react()],
   server: {
     host: "0.0.0.0",
-    proxy: {
-      "/login": "http://localhost:3000",
-      "/register": "http://localhost:3000",
-      "/approval": "http://localhost:3000",
-      "/vehicles": "http://localhost:3000",
-      "/fuel-planning": "http://localhost:3000",
-    },
+    proxy: Object.fromEntries(
+      apiRoutes.map((route) => [route, backendTarget]),
+    ),
   },
 });

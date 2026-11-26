@@ -1,3 +1,4 @@
+import { apiFetch } from "../../services/api.js";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import "./create-account.css"
@@ -16,7 +17,7 @@ function CreateAccount(){
         setMessage("Passwords do not match");
         return;
         }
-        fetch("http://localhost:3000/register/",{
+        apiFetch("/register/",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({

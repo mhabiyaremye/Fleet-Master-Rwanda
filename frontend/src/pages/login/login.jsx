@@ -1,3 +1,4 @@
+import { apiFetch } from "../../services/api.js";
 import { useState } from "react";
 import "./login.css";
 import { Link, useNavigate } from "react-router-dom";
@@ -8,7 +9,7 @@ function Login() {
   const navigate = useNavigate();
   function handleLogin(event) {
     event.preventDefault();
-    fetch("/login", {
+    apiFetch("/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

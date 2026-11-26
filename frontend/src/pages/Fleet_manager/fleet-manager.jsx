@@ -1,3 +1,4 @@
+import { apiFetch } from "../../services/api.js";
 import { useState, useEffect, useCallback } from "react";
 import "./fleet-manager.css";
 
@@ -148,7 +149,7 @@ function FleetManager() {
     setFuelSaving(true);
 
     try {
-      const response = await fetch("/fuel-planning", {
+      const response = await apiFetch("/fuel-planning", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -195,7 +196,7 @@ function FleetManager() {
         return;
       }
 
-      const response = await fetch("/fuel-planning", {
+      const response = await apiFetch("/fuel-planning", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -334,7 +335,7 @@ function FleetManager() {
       return;
     }
 
-    fetch("/vehicles", {
+    apiFetch("/vehicles", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -463,7 +464,7 @@ function FleetManager() {
       return;
     }
 
-    fetch("/vehicles", {
+    apiFetch("/vehicles", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -559,7 +560,7 @@ function FleetManager() {
     }
 
     // Load employees who are approved for assignment.
-    fetch("/vehicles/approved-employees", {
+    apiFetch("/vehicles/approved-employees", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -596,7 +597,7 @@ function FleetManager() {
       return;
     }
 
-    fetch(`/vehicles/${selectedVehicle.vehicle_id}/assign`, {
+    apiFetch(`/vehicles/${selectedVehicle.vehicle_id}/assign`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -655,7 +656,7 @@ function FleetManager() {
     setUnassigningVehicleId(vehicle.vehicle_id);
 
     try {
-      const response = await fetch(`/vehicles/${vehicle.vehicle_id}/unassign`, {
+      const response = await apiFetch(`/vehicles/${vehicle.vehicle_id}/unassign`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -706,7 +707,7 @@ function FleetManager() {
 
     const token = sessionStorage.getItem("token");
 
-    fetch(`/vehicles/${vehicleId}/maintenance`, {
+    apiFetch(`/vehicles/${vehicleId}/maintenance`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -749,7 +750,7 @@ function FleetManager() {
 
     const token = sessionStorage.getItem("token");
 
-    fetch(`/vehicles/${maintenanceVehicleId}/maintenance`, {
+    apiFetch(`/vehicles/${maintenanceVehicleId}/maintenance`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -813,7 +814,7 @@ function FleetManager() {
 
     const token = sessionStorage.getItem("token");
 
-    fetch(
+    apiFetch(
       `/vehicles/${maintenanceVehicleId}/maintenance/${record.maintenance_id}`,
       {
         method: "PATCH",
@@ -855,7 +856,7 @@ function FleetManager() {
 
     const token = sessionStorage.getItem("token");
 
-    fetch(
+    apiFetch(
       `/vehicles/${maintenanceVehicleId}/maintenance/${record.maintenance_id}/confirm-ready`,
       {
         method: "PATCH",
@@ -883,7 +884,7 @@ function FleetManager() {
         handleLoadMaintenanceHistory(maintenanceVehicleId);
 
         // Refresh the vehicle list to show its latest status.
-        fetch("/vehicles", {
+        apiFetch("/vehicles", {
           headers: {
             Authorization: `Bearer ${token}`,
           },

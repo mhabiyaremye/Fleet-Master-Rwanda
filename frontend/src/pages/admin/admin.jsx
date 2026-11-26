@@ -1,3 +1,4 @@
+import { apiFetch } from "../../services/api.js";
 import "./admin.css";
 import { useEffect, useState } from "react";
 
@@ -11,7 +12,7 @@ function AdminDashboard() {
   const [message, setMessage] = useState("");
   function getDeactivatedUsers() {
     const token = sessionStorage.getItem("token");
-    fetch("http://localhost:3000/get-deactivated-users", {
+    apiFetch("/get-deactivated-users", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -39,7 +40,7 @@ function AdminDashboard() {
       return;
     }
     const token = sessionStorage.getItem("token");
-    fetch("http://localhost:3000/approval", {
+    apiFetch("/approval", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -68,7 +69,7 @@ function AdminDashboard() {
   }
   function rejectUser(user) {
     const token = sessionStorage.getItem("token");
-    fetch("http://localhost:3000/rejected", {
+    apiFetch("/rejected", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -95,7 +96,7 @@ function AdminDashboard() {
   }
   function deactivateUser(user) {
     const token = sessionStorage.getItem("token");
-    fetch("http://localhost:3000/deactivated", {
+    apiFetch("/deactivated", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -126,7 +127,7 @@ function AdminDashboard() {
   function reactivateUser(user) {
     const token = sessionStorage.getItem("token");
     console.log("Reactivating user:", user);
-    fetch("http://localhost:3000/reactivate", {
+    apiFetch("/reactivate", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -167,20 +168,25 @@ function AdminDashboard() {
       }),
     );
   }
-  useEffect(
-    function () {
-      if (!message) {
-        return;
-      }
-      const timer = setTimeout(function () {
-        setMessage("");
-      }, 3000);
-    },
-    [message],
-  );
+ useEffect(
+  function () {
+    if (!message) {
+      return;
+    }
+
+    const timer = setTimeout(function () {
+      setMessage("");
+    }, 3000);
+
+    return function () {
+      clearTimeout(timer);
+    };
+  },
+  [message],
+);
   useEffect(function () {
     const token = sessionStorage.getItem("token");
-    fetch("http://localhost:3000/get-pending-users", {
+    apiFetch("/get-pending-users", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -199,7 +205,7 @@ function AdminDashboard() {
   }, []);
   function getApprovedUsers() {
     const token = sessionStorage.getItem("token");
-    fetch("http://localhost:3000/get-all-users", {
+    apiFetch("/get-all-users", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
