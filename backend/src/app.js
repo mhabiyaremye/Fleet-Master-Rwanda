@@ -14,6 +14,7 @@ loadEnvFile(path.join(__dirname, "../../.env"));
 const pool = require("./config/database.js");
 
 // Backend routes.
+const authRoutes = require("./modules/auth/auth.routes.js");
 const vehicleRoutes = require("./modules/vehicles/vehicles.routes.js");
 const maintenanceRoutes = require("./modules/maintenance/maintenance.routes.js");
 const fuelPlanningRoutes = require("./modules/fuel-planning/fuel-planning.routes.js");
@@ -32,112 +33,14 @@ app.use(cors());
 app.use(express.json());
 
 // Register routes.
+app.use("/", authRoutes);
 app.use("/vehicles", vehicleRoutes);
 app.use("/vehicles", maintenanceRoutes);
 app.use("/fuel-planning", fuelPlanningRoutes);
 
 
 
-app.post("/login", async function (req, res) {
-  const email = req.body.email;
-  const password = req.body.password;
 
-  if (!email) {
-    return res.json({
-      success: false,
-      message: "Provide Email",
-    });
-  }
-
-  if (!password) {
-    return res.json({
-      success: false,
-      message: "Provide password",
-    });
-  }
-
-  try {
-    // 1. Find the user
-    const result = await pool.query("SELECT * FROM users WHERE email = $1", [
-      email,
-    ]);
-
-    if (result.rows.length === 0) {
-      return res.json({
-        success: false,
-        message: "User does not exist",
-      });
-    }
-
-    const user = result.rows[0];
-
-    // 2. Verify the password
-    const passwordMatches = await bcrypt.compare(password, user.password);
-
-    if (!passwordMatches) {
-      return res.json({
-        success: false,
-        message: "Incorrect password",
-      });
-    }
-
-    // 3. Check account status
-    if (user.status !== "approved") {
-      return res.json({
-        success: false,
-        message:
-          user.status === "pending"
-            ? "Account not approved"
-            : "Account is not authorized",
-      });
-    }
-
-    // 4. Generate a unique session ID
-    const sessionId = randomUUID();
-
-    // 5. Set the maximum session lifetime to 8 hours
-    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
-
-    // 6. Register the session in PostgreSQL
-    await pool.query(
-      `INSERT INTO public.user_sessions (
-        id,
-        user_id,
-        expires_at,
-        device_info
-      )
-      VALUES ($1, $2, $3, $4)`,
-      [sessionId, user.id, expiresAt, req.get("user-agent") || null],
-    );
-
-    // 7. Create JWT containing the session ID
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        sid: sessionId,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "8h",
-      },
-    );
-
-    // 8. Return login information
-    return res.json({
-      success: true,
-      message: "Log in successful",
-      token: token,
-      role: user.role,
-    });
-  } catch (error) {
-    console.error("Login failed:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Unable to complete login",
-    });
-  }
-});
 
 app.post("/register", function (req, res) {
   let firstname = req.body.firstname;
