@@ -1,8 +1,12 @@
 "use strict";
 
 const path = require("node:path");
-const { loadEnvFile } = require("node:process");
 const { Pool } = require("pg");
+
+const {
+  STAGING_DATABASE,
+  buildMigrationConfig,
+} = require("../database/migration-connection.cjs");
 
 const {
   readMigrations,
@@ -13,9 +17,7 @@ const {
 // Environment configuration
 // --------------------------------------------------
 
-const projectRoot = path.resolve(__dirname, "../..");
-
-loadEnvFile(path.join(projectRoot, ".env"));
+require("../src/config/environment.js");
 
 const command = process.argv[2];
 const databaseName = process.argv[3];
@@ -33,6 +35,7 @@ const ALLOWED_DATABASES = new Set([
   "fleet_master_runner_test",
   "fleet_master_assignment_test",
   "fleet_master_admin_test",
+  STAGING_DATABASE,
 ]);
 
 const LOCAL_HOSTS = new Set([
@@ -67,7 +70,7 @@ if (
   !ALLOWED_DATABASES.has(databaseName)
 ) {
   console.error(
-    "Usage: node scripts/migrate.cjs <init|apply> <allowed_test_database>"
+    "Usage: node scripts/migrate.cjs <init|apply> <allowed_database>"
   );
 
   process.exit(1);
@@ -94,15 +97,9 @@ if (
 // PostgreSQL connection
 // --------------------------------------------------
 
-const pool = new Pool({
-  user: process.env.db_user,
-  host: process.env.db_host,
-  database: databaseName,
-  password: process.env.db_password,
-  port: Number(process.env.db_port || 5432),
-  connectionTimeoutMillis: 5000,
-  max: 2,
-});
+const pool = new Pool(
+  buildMigrationConfig(databaseName)
+);
 
 // --------------------------------------------------
 // PostgreSQL version compatibility
