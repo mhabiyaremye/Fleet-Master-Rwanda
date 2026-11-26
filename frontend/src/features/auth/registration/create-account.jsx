@@ -1,4 +1,4 @@
-import { apiFetch } from "../../services/api.js";
+import { apiFetch } from "../../../services/api.js";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import "./create-account.css"

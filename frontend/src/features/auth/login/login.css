@@ -7,7 +7,7 @@ h1 {
 .log-in-container {
   font-size: 1rem;
   color: rgb(251, 247, 247);
-  background-image: url("../../assets/images/login.jpg");
+  background-image: url("../../../assets/images/login.jpg");
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;

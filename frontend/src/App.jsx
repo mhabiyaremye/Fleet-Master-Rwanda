@@ -1,9 +1,9 @@
 import "./App.css";
 import { Routes, Route, Navigate } from "react-router-dom";
-import Login from "./pages/login/login";
-import CreateAccount from "./pages/create-account/create-account";
-import AdminDashboard from "./pages/admin/admin";
-import FleetManager from "./pages/Fleet_manager/fleet-manager";
+import Login from "./features/auth/login/login";
+import CreateAccount from "./features/auth/registration/create-account";
+import AdminDashboard from "./features/administration/admin";
+import FleetManager from "./features/fleet/fleet-manager";
 import ProtectedRoute from "./routes/ProtectedRoute";
 function App() {
   return (
