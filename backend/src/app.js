@@ -1,12 +1,10 @@
 
-const { loadEnvFile } = require("node:process");
-const path = require("node:path");
 
 const express = require("express");
 const cors = require("cors");
 
 // Load environment variables before importing application modules.
-loadEnvFile(path.join(__dirname, "../../.env"));
+require("./config/environment.js");
 
 // Business modules.
 const authRoutes = require("./modules/auth/auth.routes.js");
@@ -22,6 +20,8 @@ const app = express();
 // Global middleware.
 app.use(cors());
 app.use(express.json());
+
+app.use(require("./modules/health/health.routes.js"));
 
 // Authentication and account management.
 app.use("/", authRoutes);
